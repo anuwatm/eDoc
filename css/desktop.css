@@ -1,0 +1,120 @@
+/* css/desktop.css */
+
+/* Desktop Grid/Layout */
+#desktop-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Icon Area (Left) */
+#desktop-icons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+}
+
+.desktop-icon {
+    width: 80px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.desktop-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.desktop-icon i {
+    font-size: 3rem;
+    color: #fff;
+    margin-bottom: 5px;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5));
+}
+
+.desktop-icon span {
+    font-size: 0.9rem;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    display: block;
+    line-height: 1.2;
+}
+
+/* Widget Area (Right) */
+#widget-area {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    /* Space between widgets */
+    z-index: 5;
+    pointer-events: none;
+    /* Allow clicking through empty space */
+}
+
+#widget-area>* {
+    pointer-events: auto;
+    /* Re-enable pointer events for widgets */
+}
+
+/* Taskbar (Bottom) */
+#taskbar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: flex;
+    gap: 20px;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: 0.3s;
+}
+
+#taskbar:hover {
+    padding: 12px 25px;
+    /* Slight expansion on hover */
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.taskbar-icon {
+    font-size: 1.8rem;
+    color: #fff;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s, color 0.2s;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+}
+
+.taskbar-icon:hover {
+    transform: translateY(-10px) scale(1.2);
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.taskbar-icon.logout:hover {
+    color: var(--danger-color);
+}
