@@ -11,7 +11,7 @@ class Desktop {
             <!-- Desktop Icons -->
             <div id="desktop-icons">
                 <div class="desktop-icon" onclick="WindowManager.open('My Document', 'my-doc')">
-                    <i class="fa-solid fa-folder-user" style="color: #FFD700;"></i>
+                    <i class="fa-solid fa-folder" style="color: #FFD700;"></i>
                     <span>My Document</span>
                 </div>
                 <div class="desktop-icon" onclick="WindowManager.open('Public Document', 'public-doc')">
@@ -25,15 +25,10 @@ class Desktop {
             </div>
 
             <!-- Widget Area -->
-            <div id="widget-area">
-                <!-- Widgets injected here -->
-            </div>
+            <div id="widget-area"></div>
 
             <!-- Taskbar -->
             <div id="taskbar">
-                <div class="taskbar-icon" onclick="Desktop.showPersonCard()" title="Profile">
-                    <i class="fa-solid fa-user"></i>
-                </div>
                 <div class="taskbar-icon" onclick="Desktop.openSearch()" title="Search">
                     <i class="fa-solid fa-magnifying-glass"></i>
                 </div>
@@ -49,8 +44,11 @@ class Desktop {
             </div>
         `;
 
-        // Initialize Widgets (Placeholder for now)
-        this.initWidgets();
+        if (typeof Widgets !== 'undefined') {
+            Widgets.init();
+        }
+
+
     }
 
     static openSearch() {
@@ -62,22 +60,8 @@ class Desktop {
         }
     }
 
-    static showPersonCard() {
-        // Toggle the Person Widget visibility or highlight it
-        const widget = document.querySelector('.widget-person');
-        if (widget) {
-            widget.style.animation = 'none';
-            widget.offsetHeight; /* trigger reflow */
-            widget.style.animation = 'pulse 0.5s';
-            widget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-            alert('User Profile: ' + (window.currentUser || 'Guest'));
-        }
-    }
 
-    initWidgets() {
-        if (typeof Widgets !== 'undefined') {
-            Widgets.init();
-        }
-    }
+
+
+
 }

@@ -17,14 +17,22 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/desktop.css">
     <link rel="stylesheet" href="css/window.css">
-    <link rel="stylesheet" href="css/widgets.css">
+
     <link rel="stylesheet" href="css/fileSystem.css">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tabulator CSS -->
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Tabulator & PapaParse JS -->
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 
 <body>
-
+    <script>
+        window.currentUser = "<?php echo isset($_SESSION['username']) ? $_SESSION['username'] : ''; ?>";
+    </script>
     <!-- Authentication Screen -->
     <div id="auth-container" class="<?php echo $isLoggedIn ? 'hidden' : ''; ?>">
         <div id="login-form">
@@ -79,12 +87,13 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <script>
         window.currentUser = '<?php echo isset($_SESSION['username']) ? $_SESSION['username'] : ''; ?>';
     </script>
-    <script src="js/auth.js"></script>
-    <script src="js/windowManager.js"></script>
-    <script src="js/desktop.js"></script>
-    <script src="js/fileSystem.js"></script>
-    <script src="js/widgets.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/auth.js?v=<?php echo time(); ?>"></script>
+    <script src="js/windowManager.js?v=<?php echo time(); ?>"></script>
+    <script src="js/desktop.js?v=<?php echo time(); ?>"></script>
+    <script src="js/fileSystem.js?v=<?php echo time(); ?>"></script>
+    <script src="js/widgets.js?v=<?php echo time(); ?>"></script>
+
+    <script src="js/app.js?v=<?php echo time(); ?>"></script>
 </body>
 
 </html>

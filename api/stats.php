@@ -35,12 +35,26 @@ function getStats($dir, &$fileCount, &$totalSize)
 
 getStats($dir, $fileCount, $totalSize);
 
+// Helper to find avatar
+function getAvatarPath($username)
+{
+    $base = __DIR__ . "/../eDoc/private/$username/avatar/";
+    $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+    foreach ($allowed as $ext) {
+        if (file_exists($base . "avatar.$ext")) {
+            return "eDoc/private/$username/avatar/avatar.$ext";
+        }
+    }
+    return "assets/defaults/avatar.png";
+}
+
 echo json_encode([
     'success' => true,
     'username' => $username,
     'fileCount' => $fileCount,
     'usedSpace' => $totalSize,
     'totalSpace' => $limit,
-    'percent' => min(100, round(($totalSize / $limit) * 100))
+    'percent' => min(100, round(($totalSize / $limit) * 100)),
+    'avatar' => getAvatarPath($username)
 ]);
 ?>

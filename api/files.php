@@ -53,6 +53,12 @@ if ($action === 'list') {
             continue;
 
         $fullPath = "$targetDir/$item";
+
+        // Hide sub-folders if type is private (as requested)
+        if ($type === 'private' && is_dir($fullPath)) {
+            continue;
+        }
+
         $files[] = [
             'name' => $item,
             'isDir' => is_dir($fullPath),
@@ -112,10 +118,21 @@ if ($action === 'list') {
         unlink($fullPath);
         echo json_encode(['success' => true]);
     } elseif (is_dir($fullPath)) {
-        // Simple Recursive Delete for folder
-        // todo: unsafe for production without more checks, but ok for now
-        rmdir($fullPath); // Only works if empty
-        echo json_encode(['success' => true]);
+        // Recursive Delete
+        function delTree($dir)
+        {
+            $files = array_diff(scandir($dir), array('.', '..'));
+            foreach ($files as $file) {
+                (is_dir("$dir/$file")) ? delTree("$dir/$file") : unlink("$dir/$file");
+            }
+            return rmdir($dir);
+        }
+
+        if (delTree($fullPath)) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete folder']);
+        }
     } else {
         echo json_encode(['success' => false, 'message' => 'Not found']);
     }
@@ -136,11 +153,41 @@ if ($action === 'list') {
     }
 
     if ($action === 'move') {
-        rename($srcFile, $destFile);
+        if (rename($srcFile, $destFile)) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to move file (check permissions or lock)']);
+        }
     } else {
-        copy($srcFile, $destFile);
+        if (copy($srcFile, $destFile)) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to copy file']);
+        }
     }
-    echo json_encode(['success' => true]);
+
+} elseif ($action === 'read_content') {
+    $type = $_GET['type'] ?? 'private';
+    $path = $_GET['path'] ?? '';
+
+    $baseDir = ($type === 'public') ? $publicBase : $privateBase;
+    $targetFile = $baseDir . ($path ? '/' . str_replace('..', '', $path) : '');
+
+    if (file_exists($targetFile) && is_file($targetFile)) {
+        // Basic MIME type detection or default to text/plain for CSV/Code
+        $ext = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+        $mime = 'text/plain';
+        if ($ext === 'csv')
+            $mime = 'text/csv';
+        if ($ext === 'json')
+            $mime = 'application/json';
+
+        header("Content-Type: $mime");
+        readfile($targetFile);
+    } else {
+        http_response_code(404);
+        echo "File not found: $path";
+    }
 
 } else {
     echo json_encode(['success' => false, 'message' => 'Invalid action']);

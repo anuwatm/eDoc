@@ -7,15 +7,24 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 ### 🖥️ Virtual Desktop Interface
 - **Window Management**: Open, close, minimize, maximize, resize, and drag virtual windows.
 - **Taskbar**: Quick access to "My Documents", "Public Documents", Search, Uploads, and Settings.
-- **Widgets**: Real-time digital clock, user storage statistics, file details, and sidebar previews.
+- **Widgets**:
+    - **Clock Widget**: Real-time digital clock with date.
+    - **Person Widget**: Displays user profile (avatar, name) and **storage statistics** (file count, usage).
+    - **Detail Widget**: Shows interactive **previews** (Images, MP4) and metadata for the selected file.
 - **Personalization**: Change user avatar and desktop wallpaper.
 
 ### 📂 Advanced File Management
 - **File Explorer**: Browse private and public directories with grid views.
 - **Drag & Drop Upload**: Upload files by dragging them directly into the "Upload" window or file folders.
-- **Embedded Upload Queue**: Review and manage files in a queue before uploading.
+- **Real-time Progress Bar**: Visual progress indicator for multiple file uploads.
 - **Context Menus**: Right-click to open, copy, move, or delete files.
-- **Preview**: Built-in preview for images and videos; placeholder for CSV/Pivot tables.
+- **Preview**: 
+    - **Media**: Secure preview for images and videos via dynamic Detail Widget.
+    - **CSV Viewer (Tabulator)**: High-performance data grid powered by **PapaParse** and **Tabulator**.
+        -   **Virtual Scrolling**: Smooth performance for large datasets.
+        -   **Advanced Filtering**: Dropdown filters for columns.
+        -   **Data grouping**: Dynamic grouping by any column.
+        -   **Printing**: Built-in print capability with custom styling.
 - **Navigation**: Double-click to open folders, "Up" button for parent directory.
 
 ### 🔐 Secure Authentication
@@ -25,9 +34,12 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 
 ## 🛠️ Technology Stack
 - **Frontend**: Vanilla JavaScript (ES6+), CSS3 (Glassmorphism design), HTML5.
+- **Libraries**: 
+    -   **Tabulator** (Data Tables)
+    -   **PapaParse** (CSV Parsing)
+    -   FontAwesome 6 (Icons)
 - **Backend**: PHP 8.x.
 - **Database**: SQLite (`vDesktop.sqlite`).
-- **Icons**: FontAwesome 6.
 
 ## 📦 Installation
 1.  Clone the repository.

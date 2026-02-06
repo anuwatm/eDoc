@@ -55,7 +55,7 @@ class FileSystem {
             item.className = 'file-item';
             item.setAttribute('data-name', file.name);
             item.setAttribute('data-type', file.type);
-            item.onclick = () => this.selectFile(item, file);
+            item.onclick = () => this.selectFile(item, file, type);
             item.ondblclick = () => this.openFile(file, type);
             item.oncontextmenu = (e) => this.showContextMenu(e, file, type);
 
@@ -79,11 +79,14 @@ class FileSystem {
         container.appendChild(grid);
     }
 
-    static selectFile(element, file) {
+    static selectFile(element, file, type) {
         document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
         element.classList.add('selected');
-        // Trigger Widget Update (if exists)
-        if (window.desktopApp) window.desktopApp.updateFileDetailWidget(file);
+
+        // Update Widget
+        if (typeof Widgets !== 'undefined') {
+            Widgets.updateDetailWidget(file, type);
+        }
     }
 
     static openFile(file, contextType) {
@@ -100,16 +103,24 @@ class FileSystem {
     }
 
     static preview(file, contextType) {
-        const path = `eDoc/${contextType === 'my-doc' ? 'private/' + window.currentUser : 'public'}/${file.relPath}`; // Approximate path logic
+        // For images/videos, we try direct link (assuming public or served via web server)
+        // For CSV, we now use the API to read content securely
+        const basePath = contextType === 'my-doc' ? `private/${window.currentUser}` : 'public';
+        const path = `${basePath}/${file.relPath}`;
 
         if (['jpg', 'png', 'jpeg', 'gif'].includes(file.type)) {
-            WindowManager.open(`Preview: ${file.name}`, 'preview-img', { src: path });
+            // Images might still need the 'eDoc/' prefix if we are determining relative URL from browser
+            const imgPath = `eDoc/${path}`;
+            WindowManager.open(`Preview: ${file.name}`, 'preview-img', { src: imgPath });
         } else if (file.type === 'mp4') {
-            WindowManager.open(`Preview: ${file.name}`, 'preview-video', { src: path });
+            const vidPath = `eDoc/${path}`;
+            WindowManager.open(`Preview: ${file.name}`, 'preview-video', { src: vidPath });
         } else if (file.type === 'csv') {
-            WindowManager.open(`Pivot: ${file.name}`, 'csv-viewer', { src: path });
+            // USE API PROXY
+            const apiUrl = `api/files.php?action=read_content&type=${contextType === 'my-doc' ? 'private' : 'public'}&path=${file.relPath}`;
+            WindowManager.open(`Pivot: ${file.name}`, 'csv-viewer', { src: apiUrl });
         } else {
-            alert('No preview available for this file type.');
+            Notify.show('No preview available for this file type.', 'info');
         }
     }
 
@@ -153,7 +164,8 @@ class FileSystem {
     }
 
     static async deleteFile(file, type) {
-        if (!confirm(`Are you sure you want to delete ${file.name}?`)) return;
+        // if (!confirm(`Are you sure you want to delete ${file.name}?`)) return;
+        if (!await Modal.confirm('Delete File', `Are you sure you want to delete <b>${file.name}</b>?<br>This action cannot be undone.`)) return;
 
         const formData = new FormData();
         formData.append('action', 'delete');
@@ -164,15 +176,131 @@ class FileSystem {
         const data = await res.json();
 
         if (data.success) {
-            alert('File deleted');
+            Notify.show('File deleted', 'success');
+            // Refresh view
+            const targetType = type === 'my-doc' ? 'my-doc' : 'public-doc';
+            document.querySelectorAll(`.window-content[data-type="${targetType}"]`).forEach(c => {
+                this.load(c, targetType, c.getAttribute('data-path'));
+            });
         } else {
-            alert('Delete failed: ' + data.message);
+            Notify.show('Delete failed: ' + data.message, 'error');
         }
     }
 
     // Placeholder actions
-    static copyFile(file, type) { alert(`Copy ${file.name} - functionality pending`); }
-    static moveFile(file, type) { alert(`Move ${file.name} - functionality pending`); }
+    static copyFile(file, type) {
+        this.showFileSelector('Copy to...', async (destType, destPath) => {
+            await this.performFileAction('copy', file, type, destType, destPath);
+        });
+    }
+
+    static moveFile(file, type) {
+        this.showFileSelector('Move to...', async (destType, destPath) => {
+            await this.performFileAction('move', file, type, destType, destPath);
+        });
+    }
+
+    static async performFileAction(action, file, srcType, destType, destPath) {
+        const formData = new FormData();
+        formData.append('action', action);
+
+        // Helper to construct path compatible with api/files.php
+        const mkPath = (t, p) => t === 'my-doc' ? p : 'public/' + p;
+
+        formData.append('src', mkPath(srcType, file.relPath));
+        formData.append('dest', mkPath(destType, (destPath ? destPath + '/' : '') + file.name));
+
+        try {
+            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                Notify.show(`${action === 'move' ? 'Moved' : 'Copied'} successfully.`, 'success');
+                // Refresh all views
+                document.querySelectorAll('.window-content[data-type]').forEach(container => {
+                    this.load(container, container.getAttribute('data-type'), container.getAttribute('data-path'));
+                });
+            } else {
+                Notify.show(`Error: ${data.message}`, 'error');
+            }
+        } catch (e) { console.error(e); Notify.show('Connection error', 'error'); }
+    }
+
+    static showFileSelector(title, callback) {
+        const id = `win-fs-${Date.now()}`;
+        // Open our custom selector window
+        WindowManager.open(title, 'file-selector');
+        // The window creation is async-ish in DOM but sync in JS execution. 
+        // However, we need to find the specific window we just created.
+        // WindowManager generates IDs based on timestamp, but we don't return it cleanly in `open`.
+        // FIX: Let's find the window by searching for the one with the freshest ID or modifying WindowManager to return it.
+        // For now, let's query the DOM for the last virtual-window.
+
+        setTimeout(() => {
+            const wins = document.querySelectorAll('.virtual-window');
+            const win = wins[wins.length - 1]; // Most recent
+            if (!win) return;
+
+            const grid = win.querySelector('#fs-grid');
+            const pathSpan = win.querySelector('#fs-current-path');
+            const typeSelect = win.querySelector('#fs-context-type');
+            const btn = win.querySelector('#fs-select-btn');
+
+            let currentType = 'my-doc';
+            let currentPath = '';
+
+            const loadLevel = async (t, p) => {
+                const response = await fetch(`api/files.php?action=list&type=${t === 'my-doc' ? 'private' : 'public'}&path=${p}`);
+                const result = await response.json();
+                grid.innerHTML = '';
+
+                // Up Dir
+                if (p) {
+                    const up = document.createElement('div');
+                    up.innerHTML = '<i class="fa-solid fa-arrow-turn-up"></i> Up';
+                    up.className = 'file-item';
+                    up.style.padding = '5px';
+                    up.onclick = () => {
+                        currentPath = p.split('/').slice(0, -1).join('/');
+                        pathSpan.textContent = `Location: /${currentPath}`;
+                        loadLevel(t, currentPath);
+                    };
+                    grid.appendChild(up);
+                }
+
+                if (result.success && result.files) {
+                    result.files.filter(f => f.isDir).forEach(f => {
+                        const d = document.createElement('div');
+                        d.className = 'file-item';
+                        d.style.padding = '5px';
+                        d.style.cursor = 'pointer';
+                        d.innerHTML = `<i class="fa-solid fa-folder" style="color:#FFD700; margin-right:5px;"></i> ${f.name}`;
+                        d.onclick = () => {
+                            currentPath = p ? `${p}/${f.name}` : f.name;
+                            pathSpan.textContent = `Location: /${currentPath}`;
+                            loadLevel(t, currentPath);
+                        };
+                        grid.appendChild(d);
+                    });
+                }
+            };
+
+            typeSelect.onchange = (e) => {
+                currentType = e.target.value;
+                currentPath = '';
+                pathSpan.textContent = `Location: /`;
+                loadLevel(currentType, currentPath);
+            };
+
+            btn.onclick = () => {
+                callback(currentType, currentPath);
+                WindowManager.close(win.id);
+            };
+
+            // Initial load
+            loadLevel(currentType, currentPath);
+
+        }, 100);
+    }
 
     static enableDragDrop(container, type, path) {
         let dragCounter = 0;
@@ -328,6 +456,9 @@ class FileSystem {
         const modalContent = `
             <h3>Upload Queue</h3>
             <div class="upload-list"></div>
+            <div class="upload-progress-container">
+                <div class="upload-progress-bar"></div>
+            </div>
             <div class="upload-actions">
                 <button class="btn-cancel">Cancel</button>
                 <button class="btn-upload">Upload Files</button>
@@ -341,46 +472,92 @@ class FileSystem {
         modal.querySelector('.btn-cancel').onclick = () => modal.remove();
 
         const uploadBtn = modal.querySelector('.btn-upload');
+        const progressBar = modal.querySelector('.upload-progress-container');
+        const progressBarFill = modal.querySelector('.upload-progress-bar');
+
         uploadBtn.onclick = async () => {
             uploadBtn.innerText = 'Uploading...';
             uploadBtn.disabled = true;
+            progressBar.style.display = 'block';
+
             await this.processUpload(files, type, path, container, () => {
-                alert(`Uploaded ${files.length} files successfully.`);
-                modal.remove();
+                progressBarFill.style.width = '100%';
+                setTimeout(() => {
+                    alert(`Uploaded ${files.length} files successfully.`);
+                    modal.remove();
+                }, 500);
             }, (err) => {
                 alert('Upload failed: ' + err);
                 uploadBtn.innerText = 'Retry';
                 uploadBtn.disabled = false;
+                progressBar.style.display = 'none';
+                progressBarFill.style.width = '0%';
+            }, (percent) => {
+                progressBarFill.style.width = `${percent}%`;
             });
         };
     }
 
-    static async processUpload(files, type, path, container, onSuccess, onError) {
-        if (files.length === 0) return;
+    static processUpload(files, type, path, container, onSuccess, onError, onProgress) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('action', 'upload');
+            formData.append('type', type === 'my-doc' ? 'private' : 'public');
+            formData.append('path', path);
 
-        const formData = new FormData();
-        formData.append('action', 'upload');
-        formData.append('type', type === 'my-doc' ? 'private' : 'public');
-        formData.append('path', path);
-
-        files.forEach(file => formData.append('files[]', file));
-
-        try {
-            const res = await fetch('api/files.php', { method: 'POST', body: formData });
-            const data = await res.json();
-
-            if (data.success) {
-                if (onSuccess) onSuccess();
-                // Refresh view if it's a file grid and NOT the specific upload window
-                if (container.getAttribute('data-type') !== 'upload' && typeof this.load === 'function') {
-                    this.load(container, type, path);
-                }
+            // Append files
+            if (files instanceof FileList || Array.isArray(files)) {
+                Array.from(files).forEach(file => formData.append('files[]', file));
             } else {
-                if (onError) onError(data.message);
+                formData.append('files[]', files);
             }
-        } catch (e) {
-            if (onError) onError('Network Error');
-        }
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'api/files.php', true);
+
+            // Progress event
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = (e.loaded / e.total) * 100;
+                    if (onProgress) onProgress(percent);
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        if (data.success) {
+                            Notify.show('File(s) uploaded successfully', 'success');
+                            // Refresh
+                            if (container) {
+                                this.load(container, type, path);
+                            }
+                            if (onSuccess) onSuccess();
+                            resolve(data);
+                        } else {
+                            if (onError) onError(data.message);
+                            else Notify.show('Upload failed: ' + data.message, 'error');
+                            resolve(false);
+                        }
+                    } catch (e) {
+                        if (onError) onError('Invalid server response');
+                        resolve(false);
+                    }
+                } else {
+                    if (onError) onError(`HTTP Error ${xhr.status}`);
+                    resolve(false);
+                }
+            };
+
+            xhr.onerror = () => {
+                if (onError) onError('Connection error');
+                else Notify.show('Connection error', 'error');
+                resolve(false);
+            };
+
+            xhr.send(formData);
+        });
     }
 
     static formatBytes(bytes, decimals = 2) {

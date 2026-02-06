@@ -48,6 +48,7 @@ body {
     margin-bottom: 0.5rem;
     background: linear-gradient(to right, #fff, #a0a0a0);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -115,15 +116,259 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    display: none; /* Hidden by default */
+    display: none;
+    /* Hidden by default */
 }
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* Notifications */
+#notification-area {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    min-width: 250px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-left: 5px solid var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s ease-out;
+    opacity: 0.95;
+    transition: opacity 0.3s;
+}
+
+.toast.success {
+    border-left-color: var(--success-color);
+}
+
+.toast.error {
+    border-left-color: var(--danger-color);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 0.95;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(20px);
+    }
 }
 
 .hidden {
     display: none !important;
+}
+
+/* Modal Dialogs */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    z-index: 20000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-box {
+    background: rgba(30, 30, 40, 0.95);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 25px;
+    width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    animation: scaleIn 0.2s ease-out;
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.modal-message {
+    font-size: 1rem;
+    color: #ccc;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.btn-confirm,
+.btn-cancel {
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-confirm {
+    background: var(--danger-color);
+    color: #fff;
+}
+
+.btn-confirm:hover {
+    background: #ff2a00;
+}
+
+.btn-cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* CSV Pivot Table Styles */
+.csv-toolbar {
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 10px;
+}
+
+.csv-search {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.csv-table-container {
+    overflow: auto;
+    flex: 1;
+    position: relative;
+    max-height: calc(100% - 50px);
+}
+
+.csv-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #ddd;
+    font-size: 0.9em;
+}
+
+.csv-table th,
+.csv-table td {
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.csv-table th {
+    background: rgba(0, 0, 0, 0.4);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.csv-table th input {
+    display: block;
+    width: 100%;
+    margin-top: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    font-size: 0.8em;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.csv-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.csv-footer-row td {
+    background: rgba(0, 0, 0, 0.4);
+    color: #4caf50;
+    font-weight: bold;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Upload Progress Bar */
+.upload-progress-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-top: 10px;
+    overflow: hidden;
+    display: none;
+    /* Hidden by default */
+}
+
+.upload-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: var(--primary-color);
+    transition: width 0.1s linear;
 }
