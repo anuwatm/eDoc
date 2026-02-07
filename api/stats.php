@@ -2,6 +2,7 @@
 // api/stats.php
 session_start();
 header('Content-Type: application/json');
+require_once 'db.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false]);
@@ -9,6 +10,12 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $username = $_SESSION['username'];
+
+// Fetch User Info
+$stmt = $db->prepare("SELECT lastlogin, ipaddress FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+
 $dir = __DIR__ . "/../eDoc/private/$username";
 
 $fileCount = 0;
@@ -35,6 +42,11 @@ function getStats($dir, &$fileCount, &$totalSize)
 
 getStats($dir, $fileCount, $totalSize);
 
+$publicFileCount = 0;
+$publicTotalSize = 0;
+$publicDir = __DIR__ . "/../eDoc/public";
+getStats($publicDir, $publicFileCount, $publicTotalSize);
+
 // Helper to find avatar
 function getAvatarPath($username)
 {
@@ -55,6 +67,10 @@ echo json_encode([
     'usedSpace' => $totalSize,
     'totalSpace' => $limit,
     'percent' => min(100, round(($totalSize / $limit) * 100)),
-    'avatar' => getAvatarPath($username)
+    'avatar' => getAvatarPath($username),
+    'publicFileCount' => $publicFileCount,
+    'publicUsedSpace' => $publicTotalSize,
+    'lastlogin' => $user['lastlogin'] ?? 'Never',
+    'ipaddress' => $user['ipaddress'] ?? 'Unknown'
 ]);
 ?>

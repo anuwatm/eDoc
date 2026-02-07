@@ -9,9 +9,13 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 - **Taskbar**: Quick access to "My Documents", "Public Documents", Search, Uploads, and Settings.
 - **Widgets**:
     - **Clock Widget**: Real-time digital clock with date.
-    - **Person Widget**: Displays user profile (avatar, name) and **storage statistics** (file count, usage).
-    - **Detail Widget**: Shows interactive **previews** (Images, MP4) and metadata for the selected file.
-- **Personalization**: Change user avatar and desktop wallpaper.
+    - **Person Widget**: Streamlined profile view showing avatar, username, **File Count**, and **Storage Usage** (with progress bar). Auto-updates on file operations.
+    -   **Detail Widget**: Shows interactive **previews** (Images, MP4) and metadata. **Auto-hides** when context is lost (window closed or file deleted).
+-   **Statistics Window**: Dedicated window for detailed system usage.
+    -   **Split Layout**: Visual separation of User Profile and Storage Stats.
+    -   **Detailed Profile**: Displays Avatar, Name, Role, **Last Login**, and **IP Address**.
+    -   **Dual Storage Views**: Separate statistics for **Private** and **Public** document storage.
+-   **Personalization**: Change user avatar and desktop wallpaper.
 
 ### 📂 Advanced File Management
 - **File Explorer**: Browse private and public directories with grid views.
@@ -32,6 +36,30 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 - **User System**: Secure registration and login with password hashing.
 - **Session Management**: PHP session-based authentication.
 - **Private Storage**: Automatic creation of private user directories upon registration.
+
+## 📡 API Endpoints
+
+### 🔐 Authentication (`api/auth.php`)
+| Action | Method | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| `register` | POST | `username`, `password` | Registers a new user and creates private directories. |
+| `login` | POST | `username`, `password` | Authenticates user and starts a session. Updates Last Login/IP. |
+| `logout` | POST | - | Destroys user session and cookies. |
+
+### 📂 File Management (`api/files.php`)
+| Action | Method | Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| `list` | GET | `type` (private/public), `path` | Lists files and folders in the specified directory. |
+| `upload` | POST | `files[]`, `type`, `path` | Uploads multiple files to the target directory. |
+| `delete` | POST | `path`, `context` | Deletes a file or recursively deletes a folder. |
+| `move` | POST | `src`, `dest` | Moves a file. **Auto-renames** on collision. |
+| `copy` | POST | `src`, `dest` | Copies a file. **Auto-renames** on collision. |
+| `read_content` | GET | `type`, `path` | Streams file content. |
+
+### 📊 User Statistics (`api/stats.php`)
+| Method | Description |
+| :--- | :--- |
+| GET | Returns JSON with User Info (Name, Avatar, Last Login, IP) and storage stats (Private & Public). |
 
 ## 🛠️ Technology Stack
 - **Frontend**: Vanilla JavaScript (ES6+), CSS3 (Glassmorphism design), HTML5.

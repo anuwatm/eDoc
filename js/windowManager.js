@@ -199,8 +199,97 @@ class WindowManager {
                         <button class="win-btn" style="margin-top:10px; padding:8px 15px; background:var(--primary-color); border-radius:5px; border:none; color:white;" onclick="uploadSetting('bg')">Update Wallpaper</button>
                     </div>
                 </div>
+                    </div>
+                </div>
              `;
-        } else if (type === 'search-results') {
+        } else if (type === 'stats-window') {
+            contentArea.innerHTML = `
+                <div style="padding:20px; color:#fff; text-align:center;">
+                     <div class="loading-spinner">Loading Statistics...</div>
+                </div>
+            `;
+
+            // Fetch stats
+            fetch('api/stats.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Format Bytes
+                        const formatSize = (bytes) => {
+                            if (bytes === 0) return '0 B';
+                            const k = 1024;
+                            const sizes = ['B', 'KB', 'MB', 'GB'];
+                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                        };
+
+                        contentArea.innerHTML = `
+                            <div style="display:flex; height:100%; color:#fff;">
+                                <!-- Left Column: Profile -->
+                                <div style="width: 40%; padding: 20px; border-right: 1px solid rgba(255,255,255,0.1); display:flex; flex-direction:column; align-items:center; text-align:center; background:rgba(0,0,0,0.2);">
+                                    <img src="${data.avatar}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); margin-bottom:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                    <h2 style="margin:0; font-size:1.5rem;">${data.username}</h2>
+                                    <p style="color:#aaa; margin-top:5px; font-size:0.9em; margin-bottom:30px;">${data.role || 'Administrator'}</p>
+                                    
+                                    <div style="width:100%; text-align:left; background:rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
+                                        <div style="margin-bottom:15px;">
+                                            <div style="color:#888; font-size:0.8em; margin-bottom:3px;"><i class="fa-regular fa-clock"></i> Last Login</div>
+                                            <div style="font-family:monospace;">${data.lastlogin}</div>
+                                        </div>
+                                        <div>
+                                            <div style="color:#888; font-size:0.8em; margin-bottom:3px;"><i class="fa-solid fa-network-wired"></i> IP Address</div>
+                                            <div style="font-family:monospace;">${data.ipaddress}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column: Stats -->
+                                <div style="width: 60%; padding: 20px; overflow-y:auto;">
+                                    <h3 style="margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1);">Storage Overview</h3>
+                                    
+                                    <!-- Private Stats -->
+                                    <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:15px; border: 1px solid rgba(255,255,255,0.1); margin-bottom:20px;">
+                                        <h4 style="margin-bottom:15px; color:#2ecc71; display:flex; align-items:center; gap:10px;">
+                                            <i class="fa-solid fa-user-lock"></i> Private Storage
+                                        </h4>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;">
+                                            <span>Total Files</span>
+                                            <span style="font-weight:bold;">${data.fileCount}</span>
+                                        </div>
+                                         <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                            <span>Space Used</span>
+                                            <span style="font-weight:bold;">${formatSize(data.usedSpace)}</span>
+                                        </div>
+                                         <div style="background:rgba(0,0,0,0.3); height:8px; border-radius:4px; overflow:hidden; margin-top:10px;">
+                                            <div style="background:#2ecc71; width:${data.percent}%; height:100%;"></div>
+                                        </div>
+                                        <div style="text-align:right; font-size:0.8em; color:#aaa; margin-top:5px;">${data.percent}% of 100MB</div>
+                                    </div>
+
+                                    <!-- Public Stats -->
+                                    <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:15px; border: 1px solid rgba(255,255,255,0.1);">
+                                        <h4 style="margin-bottom:15px; color:#3498db; display:flex; align-items:center; gap:10px;">
+                                            <i class="fa-solid fa-globe"></i> Public Storage
+                                        </h4>
+                                        <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;">
+                                            <span>Total Files</span>
+                                            <span style="font-weight:bold;">${data.publicFileCount}</span>
+                                        </div>
+                                         <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                            <span>Space Used</span>
+                                            <span style="font-weight:bold;">${formatSize(data.publicUsedSpace)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        contentArea.innerHTML = `<p style="color:red; text-align:center;">Failed to load stats.</p>`;
+                    }
+                })
+                .catch(err => {
+                    contentArea.innerHTML = `<p style="color:red; text-align:center;">Error: ${err.message}</p>`;
+                });
             contentArea.innerHTML = `<p style="padding:20px;">Searching for: <b>${data.term}</b>...</p>`;
             // Todo: Call Search API
         } else if (type === 'file-selector') {

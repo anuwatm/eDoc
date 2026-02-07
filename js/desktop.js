@@ -18,9 +18,13 @@ class Desktop {
                     <i class="fa-solid fa-folder-open" style="color: #00BFFF;"></i>
                     <span>Public Document</span>
                 </div>
-                <div class="desktop-icon" onclick="Desktop.openSearch()">
+                <div class="desktop-icon" onclick="WindowManager.open('Search', 'search-results', { term: prompt('Enter search term:') })">
                     <i class="fa-solid fa-magnifying-glass" style="color: #fff;"></i>
                     <span>Search</span>
+                </div>
+                <div class="desktop-icon" onclick="WindowManager.open('Statistics', 'stats-window')">
+                    <i class="fa-solid fa-chart-pie" style="color: #e74c3c;"></i>
+                    <span>Stat</span>
                 </div>
             </div>
 
