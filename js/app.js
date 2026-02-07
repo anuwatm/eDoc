@@ -93,10 +93,14 @@ async function logout() {
         const result = await response.json();
 
         if (result.success) {
-            location.reload();
+            window.location.href = 'index.php';
+        } else {
+             console.error('Logout failed from server:', result.message);
         }
     } catch (error) {
         console.error('Logout failed:', error);
+        // Fallback: reload anyway if network fails, to check session status
+        window.location.href = 'index.php';
     }
 }
 

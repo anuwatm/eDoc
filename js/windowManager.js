@@ -52,6 +52,17 @@ class WindowManager {
     static close(id) {
         const win = document.getElementById(id);
         if (win) {
+            // Check if this is a File Manager window
+            const query = win.querySelector('.window-content');
+            const type = query ? query.getAttribute('data-type') : null;
+
+            // If closing a file manager, hide the detail widget as context is lost
+            if (type === 'my-doc' || type === 'public-doc') {
+                if (typeof Widgets !== 'undefined') {
+                    Widgets.updateDetailWidget(null); // Hide details
+                }
+            }
+
             win.remove();
             delete this.activeWindows[id];
         }

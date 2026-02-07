@@ -22,7 +22,6 @@ class Widgets {
                     <img src="assets/defaults/avatar.png" alt="User Avatar" class="person-avatar" id="widget-avatar">
                     <div class="person-details">
                         <h3 id="widget-username">Loading...</h3>
-                        <span class="person-role">Administrator</span>
                     </div>
                 </div>
                 <div class="storage-stats">
@@ -30,7 +29,7 @@ class Widgets {
                         <span><i class="fa-solid fa-file"></i> Files</span>
                         <span id="widget-file-count">0</span>
                     </div>
-                    <div class="stat-row">
+                     <div class="stat-row">
                         <span><i class="fa-solid fa-hard-drive"></i> Storage</span>
                         <span id="widget-storage-size">0 MB</span>
                     </div>

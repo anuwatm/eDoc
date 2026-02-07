@@ -177,6 +177,13 @@ class FileSystem {
 
         if (data.success) {
             Notify.show('File deleted', 'success');
+
+            // Hide Detail Widget as file is gone
+            if (typeof Widgets !== 'undefined') {
+                Widgets.updateDetailWidget(null);
+                Widgets.updatePersonWidget();
+            }
+
             // Refresh view
             const targetType = type === 'my-doc' ? 'my-doc' : 'public-doc';
             document.querySelectorAll(`.window-content[data-type="${targetType}"]`).forEach(c => {
@@ -219,6 +226,7 @@ class FileSystem {
                 document.querySelectorAll('.window-content[data-type]').forEach(container => {
                     this.load(container, container.getAttribute('data-type'), container.getAttribute('data-path'));
                 });
+                if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
             } else {
                 Notify.show(`Error: ${data.message}`, 'error');
             }
@@ -533,6 +541,7 @@ class FileSystem {
                             if (container) {
                                 this.load(container, type, path);
                             }
+                            if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
                             if (onSuccess) onSuccess();
                             resolve(data);
                         } else {

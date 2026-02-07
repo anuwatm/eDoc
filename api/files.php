@@ -152,6 +152,22 @@ if ($action === 'list') {
         exit;
     }
 
+    // Check if destination exists and rename if necessary
+    if (file_exists($destFile)) {
+        $info = pathinfo($destFile);
+        $ext = isset($info['extension']) ? '.' . $info['extension'] : '';
+        $name = $info['filename'];
+
+        // Append timestamp: Name_Ymd_His.ext
+        // Use microtime to ensure uniqueness if multiple ops happen fast? 
+        // Standard date('Ymd_His') is usually enough for user interactions.
+        $timestamp = date('Ymd_His');
+        $newDestFile = $info['dirname'] . '/' . $name . '_' . $timestamp . $ext;
+
+        // Update destFile to the new unique path
+        $destFile = $newDestFile;
+    }
+
     if ($action === 'move') {
         if (rename($srcFile, $destFile)) {
             echo json_encode(['success' => true]);

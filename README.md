@@ -18,6 +18,7 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 - **Drag & Drop Upload**: Upload files by dragging them directly into the "Upload" window or file folders.
 - **Real-time Progress Bar**: Visual progress indicator for multiple file uploads.
 - **Context Menus**: Right-click to open, copy, move, or delete files.
+    -   **Smart Collision**: Automatically **renames** files with timestamps if a duplicate exists during Copy/Move.
 - **Preview**: 
     - **Media**: Secure preview for images and videos via dynamic Detail Widget.
     - **CSV Viewer (Tabulator)**: High-performance data grid powered by **PapaParse** and **Tabulator**.
