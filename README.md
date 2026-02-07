@@ -42,7 +42,10 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 - **Database**: SQLite (`vDesktop.sqlite`).
 
 ## 📦 Installation
-1.  Clone the repository.
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/anuwatm/eDoc.git
+    ```
 2.  Ensure you have a web server (Apache/Nginx) with PHP and SQLite enabled.
 3.  Place the project in your server's root directory (e.g., `htdocs` or `www`).
 4.  Navigate to `index.php` in your browser.
