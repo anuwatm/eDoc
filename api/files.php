@@ -2,6 +2,7 @@
 // api/files.php
 session_start();
 header('Content-Type: application/json');
+require_once 'logger.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
@@ -100,6 +101,7 @@ if ($action === 'list') {
             // Let's just overwrite for simplicity or standard OS behavior
             if (move_uploaded_file($tmp, "$targetDir/$name")) {
                 $uploaded[] = $name;
+                writeLog('UPLOAD', "Uploaded file: $name to $targetDir");
             }
         }
         echo json_encode(['success' => true, 'uploaded' => $uploaded]);
@@ -116,6 +118,7 @@ if ($action === 'list') {
 
     if (is_file($fullPath)) {
         unlink($fullPath);
+        writeLog('DELETE', "Deleted file: $fullPath");
         echo json_encode(['success' => true]);
     } elseif (is_dir($fullPath)) {
         // Recursive Delete
@@ -129,6 +132,7 @@ if ($action === 'list') {
         }
 
         if (delTree($fullPath)) {
+            writeLog('DELETE', "Deleted folder: $fullPath");
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to delete folder']);
@@ -170,12 +174,14 @@ if ($action === 'list') {
 
     if ($action === 'move') {
         if (rename($srcFile, $destFile)) {
+            writeLog('MOVE', "Moved file from $srcFile to $destFile");
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to move file (check permissions or lock)']);
         }
     } else {
         if (copy($srcFile, $destFile)) {
+            writeLog('COPY', "Copied file from $srcFile to $destFile");
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to copy file']);

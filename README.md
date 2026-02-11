@@ -36,6 +36,9 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 - **User System**: Secure registration and login with password hashing.
 - **Session Management**: PHP session-based authentication.
 - **Private Storage**: Automatic creation of private user directories upon registration.
+- **System Logging**: 
+    -   **Daily Logs**: Automatic recording of critical system events (Login, Logout, Upload, Move, Copy, Delete).
+    -   **Audit Trail**: Logs include Timestamp, IP Address, Username, and Action details.
 
 ## 📡 API Endpoints
 
@@ -70,7 +73,45 @@ A web-based virtual desktop environment featuring a premium macOS-inspired authe
 - **Backend**: PHP 8.x.
 - **Database**: SQLite (`vDesktop.sqlite`).
 
-## 📦 Installation
+## � System Structure
+
+```
+eDoc/
+├── api/                # Backend PHP API endpoints
+│   ├── auth.php        # Authentication logic
+│   ├── files.php       # File operations
+│   ├── stats.php       # User statistics
+│   ├── logger.php      # Logging helper
+│   └── db.php          # Database connection
+├── assets/             # Static assets (default avatars, etc.)
+├── css/                # Stylesheets (Glassmorphism, Desktop, Widgets)
+├── database/           # SQLite database storage
+├── js/                 # Frontend Logic
+│   ├── app.js          # Core application logic
+│   ├── desktop.js      # Desktop rendering
+│   ├── fileSystem.js   # File management logic
+│   ├── widgets.js      # Widget functionality
+│   └── windowManager.js# Virtual window management
+├── eDoc/               # File Storage Root
+│   ├── private/        # User private directories
+│   └── public/         # Shared public documents
+├── logs/               # Daily system logs (action tracking)
+└── index.php           # Main entry point
+```
+
+## 🗄️ Database Structure
+
+### Table: `users`
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER PK | Unique User ID |
+| `username` | TEXT | Unique Username |
+| `password` | TEXT | Hashed Password (bcrypt) |
+| `created_at` | DATETIME | Account creation timestamp |
+| `lastlogin` | DATETIME | Timestamp of last successful login |
+| `ipaddress` | TEXT | IP Address of last login |
+
+## �📦 Installation
 1.  Clone the repository:
     ```bash
     git clone https://github.com/anuwatm/eDoc.git

@@ -58,27 +58,40 @@ if ($action === 'register') {
         $update = $db->prepare("UPDATE users SET lastlogin = datetime('now'), ipaddress = ? WHERE id = ?");
         $update->execute([$ip, $user['id']]);
 
+        // Log Login
+        require_once 'logger.php';
+        writeLog('LOGIN', "User logged in successfully.");
+
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid credentials.']);
     }
 
 } elseif ($action === 'logout') {
+    // Log Logout (before destroying session to get username)
+    require_once 'logger.php';
+    writeLog('LOGOUT', "User logged out.");
+
     // Unset all session values
     $_SESSION = array();
 
     // Delete the session cookie
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
         );
     }
 
     // Destroy the session
     session_destroy();
-    
+
     echo json_encode(['success' => true]);
     exit;
 } else {
