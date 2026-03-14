@@ -64,6 +64,13 @@ if ($action === 'register') {
 
         echo json_encode(['success' => true]);
     } else {
+        // Log Failed Login
+        require_once 'logger.php';
+        // Mock a temporary username in session for logger.php to use, then unset it
+        $_SESSION['username'] = $username;
+        writeLog('FAILED_LOGIN', "Attempted login failed for username: $username");
+        $_SESSION['username'] = null;
+
         echo json_encode(['success' => false, 'message' => 'Invalid credentials.']);
     }
 

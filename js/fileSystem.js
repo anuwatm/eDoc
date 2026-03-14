@@ -55,9 +55,10 @@ class FileSystem {
             item.className = 'file-item';
             item.setAttribute('data-name', file.name);
             item.setAttribute('data-type', file.type);
-            item.onclick = () => this.selectFile(item, file, type);
+            item.setAttribute('data-relpath', file.relPath);
+            item.onclick = (e) => this.selectFile(e, item, file, type, container);
             item.ondblclick = () => this.openFile(file, type);
-            item.oncontextmenu = (e) => this.showContextMenu(e, file, type);
+            item.oncontextmenu = (e) => this.showContextMenu(e, file, type, container);
 
             let iconClass = 'fa-file';
             let iconColor = '#ccc';
@@ -79,13 +80,22 @@ class FileSystem {
         container.appendChild(grid);
     }
 
-    static selectFile(element, file, type) {
-        document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
-        element.classList.add('selected');
+    static selectFile(e, element, file, type, container) {
+        if (e.ctrlKey || e.metaKey) {
+            element.classList.toggle('selected');
+        } else {
+            container.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+        }
 
-        // Update Widget
+        // Update Widget (only logic change: if multiple selected, hide detail widget, else show)
+        const selectedCount = container.querySelectorAll('.file-item.selected').length;
         if (typeof Widgets !== 'undefined') {
-            Widgets.updateDetailWidget(file, type);
+            if (selectedCount === 1 && element.classList.contains('selected')) {
+                Widgets.updateDetailWidget(file, type);
+            } else {
+                Widgets.updateDetailWidget(null);
+            }
         }
     }
 
@@ -124,23 +134,37 @@ class FileSystem {
         }
     }
 
-    static showContextMenu(e, file, type) {
+    static showContextMenu(e, file, type, container) {
         e.preventDefault();
         document.querySelectorAll('.context-menu').forEach(el => el.remove());
+
+        // If clicking on an unselected item, select only it
+        const clickedItem = e.currentTarget;
+        if (!clickedItem.classList.contains('selected')) {
+            container.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+            clickedItem.classList.add('selected');
+        }
+
+        const selectedItems = Array.from(container.querySelectorAll('.file-item.selected'));
+        const selectedPaths = selectedItems.map(item => item.getAttribute('data-relpath')).filter(Boolean);
 
         const menu = document.createElement('div');
         menu.className = 'context-menu';
         menu.style.top = `${e.clientY}px`;
         menu.style.left = `${e.clientX}px`;
 
-        const options = [
-            { label: 'Open', action: () => this.openFile(file, type) },
-            { label: 'Copy to...', action: () => this.copyFile(file, type) },
-            { label: 'Move to...', action: () => this.moveFile(file, type) },
-        ];
+        const options = [];
+
+        if (selectedItems.length === 1) {
+            options.push({ label: 'Open', action: () => this.openFile(file, type) });
+        }
+        
+        options.push({ label: 'Copy to...', action: () => this.copyFile(selectedPaths, type) });
+        options.push({ label: 'Move to...', action: () => this.moveFile(selectedPaths, type) });
+        options.push({ label: 'Download as ZIP', action: () => this.downloadZip(selectedPaths, type) });
 
         if (type === 'my-doc') {
-            options.push({ label: 'Delete', action: () => this.deleteFile(file, type) });
+            options.push({ label: 'Delete', action: () => this.deleteFile(selectedPaths, type) });
         }
 
         options.forEach(opt => {
@@ -163,59 +187,106 @@ class FileSystem {
         setTimeout(() => document.addEventListener('click', closeMenu), 0);
     }
 
-    static async deleteFile(file, type) {
-        // if (!confirm(`Are you sure you want to delete ${file.name}?`)) return;
-        if (!await Modal.confirm('Delete File', `Are you sure you want to delete <b>${file.name}</b>?<br>This action cannot be undone.`)) return;
+    static async deleteFile(paths, type) {
+        if (!Array.isArray(paths)) paths = [paths.relPath]; // Legacy fallback if object passed
+        
+        let msg = paths.length === 1 ? `Are you sure you want to delete <b>this file</b>?` : `Are you sure you want to delete <b>${paths.length} items</b>?`;
+        if (!await Modal.confirm('Delete', `${msg}<br>This action cannot be undone.`)) return;
 
-        const formData = new FormData();
-        formData.append('action', 'delete');
-        formData.append('path', file.relPath);
-        formData.append('context', type === 'my-doc' ? 'private' : 'public');
+        let hasError = false;
+        for (const path of paths) {
+            const formData = new FormData();
+            formData.append('action', 'delete');
+            formData.append('path', path);
+            formData.append('context', type === 'my-doc' ? 'private' : 'public');
 
-        const res = await fetch('api/files.php', { method: 'POST', body: formData });
-        const data = await res.json();
-
-        if (data.success) {
-            Notify.show('File deleted', 'success');
-
-            // Hide Detail Widget as file is gone
-            if (typeof Widgets !== 'undefined') {
-                Widgets.updateDetailWidget(null);
-                Widgets.updatePersonWidget();
+            try {
+                const res = await fetch('api/files.php', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!data.success) hasError = true;
+            } catch (e) {
+                hasError = true;
             }
-
-            // Refresh view
-            const targetType = type === 'my-doc' ? 'my-doc' : 'public-doc';
-            document.querySelectorAll(`.window-content[data-type="${targetType}"]`).forEach(c => {
-                this.load(c, targetType, c.getAttribute('data-path'));
-            });
-        } else {
-            Notify.show('Delete failed: ' + data.message, 'error');
         }
+
+        if (!hasError) {
+            Notify.show('Deleted successfully', 'success');
+        } else {
+            Notify.show('Some items failed to delete', 'warn');
+        }
+
+        if (typeof Widgets !== 'undefined') {
+            Widgets.updateDetailWidget(null);
+            Widgets.updatePersonWidget();
+        }
+
+        const targetType = type === 'my-doc' ? 'my-doc' : 'public-doc';
+        document.querySelectorAll(`.window-content[data-type="${targetType}"]`).forEach(c => {
+            this.load(c, targetType, c.getAttribute('data-path'));
+        });
+    }
+
+    // Download ZIP
+    static downloadZip(paths, type) {
+        if (!paths || paths.length === 0) return;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'api/files.php';
+        form.target = '_blank';
+        form.style.display = 'none';
+
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'download_zip';
+        form.appendChild(actionInput);
+
+        const contextInput = document.createElement('input');
+        contextInput.type = 'hidden';
+        contextInput.name = 'context';
+        contextInput.value = type === 'my-doc' ? 'private' : 'public';
+        form.appendChild(contextInput);
+
+        paths.forEach(p => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'paths[]';
+            input.value = p;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(() => form.remove(), 1000);
     }
 
     // Placeholder actions
-    static copyFile(file, type) {
+    static copyFile(paths, type) {
         this.showFileSelector('Copy to...', async (destType, destPath) => {
-            await this.performFileAction('copy', file, type, destType, destPath);
+            for (const p of paths) {
+                await this.performFileAction('copy', {relPath: p, name: p.split('/').pop()}, type, destType, destPath);
+            }
         });
     }
 
-    static moveFile(file, type) {
+    static moveFile(paths, type) {
         this.showFileSelector('Move to...', async (destType, destPath) => {
-            await this.performFileAction('move', file, type, destType, destPath);
+            for (const p of paths) {
+                await this.performFileAction('move', {relPath: p, name: p.split('/').pop()}, type, destType, destPath);
+            }
         });
     }
 
-    static async performFileAction(action, file, srcType, destType, destPath) {
+    static async performFileAction(action, fileObj, srcType, destType, destPath) {
         const formData = new FormData();
         formData.append('action', action);
 
         // Helper to construct path compatible with api/files.php
         const mkPath = (t, p) => t === 'my-doc' ? p : 'public/' + p;
 
-        formData.append('src', mkPath(srcType, file.relPath));
-        formData.append('dest', mkPath(destType, (destPath ? destPath + '/' : '') + file.name));
+        formData.append('src', mkPath(srcType, fileObj.relPath));
+        formData.append('dest', mkPath(destType, (destPath ? destPath + '/' : '') + fileObj.name));
 
         try {
             const res = await fetch('api/files.php', { method: 'POST', body: formData });
@@ -393,8 +464,19 @@ class FileSystem {
         actionDiv.style.marginTop = '10px';
         actionDiv.style.textAlign = 'right';
 
+        const progressDiv = document.createElement('div');
+        progressDiv.innerHTML = `
+            <div class="upload-progress-container" style="margin-bottom: 15px; text-align: left;">
+                <div class="upload-progress-bar"></div>
+            </div>
+        `;
+        actionDiv.appendChild(progressDiv);
+
         const renderActions = () => {
-            actionDiv.innerHTML = '';
+            // Only re-render the button part to avoid destroying the progress bar element
+            const existingBtn = actionDiv.querySelector('.btn-upload');
+            if (existingBtn) existingBtn.remove();
+            
             if (files.length === 0) return;
 
             const btn = document.createElement('button');
@@ -402,12 +484,19 @@ class FileSystem {
             btn.style.width = '100%';
             btn.style.padding = '10px';
             btn.innerText = `Upload ${files.length} Files`;
+            
+            const progressBar = actionDiv.querySelector('.upload-progress-container');
+            const progressBarFill = actionDiv.querySelector('.upload-progress-bar');
+            
             btn.onclick = async () => {
                 btn.innerText = 'Uploading...';
                 btn.disabled = true;
+                progressBar.style.display = 'block';
+                progressBarFill.style.width = '0%';
+                
                 await this.processUpload(files, type, path, container, () => {
+                    progressBarFill.style.width = '100%';
                     targetElement.innerHTML = '<div style="text-align:center; color:#4caf50; margin-top:20px;"><i class="fa-solid fa-check-circle"></i> Upload Complete</div>';
-                    // Clear success msg after 2s
                     setTimeout(() => {
                         if (targetElement.innerText.includes('Upload Complete'))
                             targetElement.innerHTML = '<div style="text-align:center; color:#666; font-size:0.9rem; margin-top:20px;">Queue is empty</div>';
@@ -415,7 +504,10 @@ class FileSystem {
                 }, (err) => {
                     btn.innerText = 'Retry';
                     btn.disabled = false;
+                    progressBar.style.display = 'none';
                     alert(err);
+                }, (percent) => {
+                    progressBarFill.style.width = `${percent}%`;
                 });
             };
             actionDiv.appendChild(btn);

@@ -162,3 +162,21 @@
 .btn-cancel:hover {
     background: rgba(255, 255, 255, 0.1);
 }
+
+/* Upload Progress Bar */
+.upload-progress-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    margin-top: 15px;
+    overflow: hidden;
+    display: none;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+}

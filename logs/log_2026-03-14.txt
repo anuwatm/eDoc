@@ -1,0 +1,61 @@
+[2026-03-14 04:53:18] [::1] [User: admin] [LOGIN] User logged in successfully.
+[2026-03-14 04:54:42] [::1] [User: admin] [UPLOAD] Uploaded file: 034.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 04:54:42] [::1] [User: admin] [UPLOAD] Uploaded file: 037.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 04:54:42] [::1] [User: admin] [UPLOAD] Uploaded file: 026.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 04:54:42] [::1] [User: admin] [UPLOAD] Uploaded file: 027.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0016.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0017.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0018.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0019.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0020.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0008.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0009.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0010.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0011.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0012.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0013.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0014.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:06:37] [::1] [User: admin] [UPLOAD] Uploaded file: 0015.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:06] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0008.jpg
+[2026-03-14 05:07:06] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0009.jpg
+[2026-03-14 05:07:06] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0010.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0011.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0012.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0013.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0014.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0015.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0016.jpg
+[2026-03-14 05:07:07] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0017.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0018.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0019.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0020.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/026.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/027.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/034.jpg
+[2026-03-14 05:07:08] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/037.jpg
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0016.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0017.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0018.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0019.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0020.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0008.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0009.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0010.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0011.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0012.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0013.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0014.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:07:38] [::1] [User: admin] [UPLOAD] Uploaded file: 0015.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-03-14 05:08:02] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0008.jpg
+[2026-03-14 05:08:02] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0009.jpg
+[2026-03-14 05:08:02] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0010.jpg
+[2026-03-14 05:08:02] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0011.jpg
+[2026-03-14 05:08:02] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0012.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0013.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0014.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0015.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0016.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0017.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0018.jpg
+[2026-03-14 05:08:03] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0019.jpg
+[2026-03-14 05:08:04] [::1] [User: admin] [DELETE] Deleted file: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/0020.jpg

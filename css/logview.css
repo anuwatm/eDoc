@@ -1,0 +1,305 @@
+/* css/logview.css */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+    --bg-color: #1a1a2e;
+    --wall-color: #3b2e5a;
+    --floor-color: #2b1f42;
+    --window-sky: #87CEEB;
+    --text-color: #fff;
+    --pixel-font: 'Press Start 2P', cursive;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: var(--pixel-font);
+    color: var(--text-color);
+    user-select: none;
+}
+
+/* UI Controls */
+.top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    padding: 15px 30px;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+    border-bottom: 4px solid #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.logo { font-size: 1.2rem; }
+
+.controls select, .controls button {
+    font-family: var(--pixel-font);
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    background: #333;
+    color: #fff;
+    border: 2px solid #fff;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.controls button:hover:not(:disabled) { background: #555; }
+.controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* The Room Environment */
+.room-container {
+    position: absolute;
+    top: 70px; /* Below top-bar */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.room-wall {
+    height: 60%;
+    /* Minecraft Oak Planks */
+    background: repeating-linear-gradient(
+        to bottom,
+        #8f704b 0px,
+        #8f704b 18px,
+        #573c21 18px,
+        #573c21 20px
+    ), #8f704b;
+    border-bottom: 4px solid #111;
+    position: relative;
+    box-shadow: inset 0 -20px 50px rgba(0,0,0,0.5);
+}
+
+.room-floor {
+    height: 40%;
+    /* Minecraft Grass Block Top */
+    background: repeating-linear-gradient(
+        45deg,
+        #5e8a3c,
+        #5e8a3c 20px,
+        #4c752c 20px,
+        #4c752c 40px
+    );
+    position: relative;
+    border-top: 4px solid #fff;
+}
+
+/* Environment Objects */
+.digital-clock {
+    position: absolute;
+    top: 20px;
+    right: 100px;
+    background: #000;
+    color: #ff003c;
+    padding: 10px 20px;
+    border: 4px solid #555;
+    font-size: 1.5rem;
+    box-shadow: 4px 4px 0 #111;
+}
+
+.door {
+    position: absolute;
+    bottom: 0;
+    left: 50px;
+    width: 120px;
+    height: 200px;
+}
+
+.door-frame {
+    position: absolute;
+    width: 100%; height: 100%;
+    border: 8px solid #5c4033;
+    border-bottom: none;
+    background: #000; /* Dark hallway inside */
+}
+
+.door-panel {
+    position: absolute;
+    bottom: 0; left: 8px;
+    width:calc(100% - 16px);
+    height: 100%;
+    /* Minecraft Oak Door */
+    background: #8e6844;
+    border: 4px solid #48321d;
+    box-shadow: inset 0 0 0 6px #664326;
+    transform-origin: left;
+    transition: transform 0.2s steps(4);
+}
+
+.door-panel::before {
+    content: '';
+    position: absolute;
+    top: 15px; left: 15px; right: 15px; height: 50px;
+    background: #87CEEB; /* Window glass */
+    border: 4px solid #48321d;
+    opacity: 0.8;
+}
+
+.door-panel.open { transform: perspective(500px) rotateY(-80deg); }
+
+/* Window */
+.window {
+    position: absolute;
+    top: 40px;
+    left: 300px;
+    width: 200px;
+    height: 150px;
+    background: var(--window-sky);
+    border: 8px solid #ddd;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.2), 4px 4px 0 #111;
+    overflow: hidden;
+}
+
+.window-frame {
+    position: absolute;
+    top:0; left:0; right:0; bottom:0;
+    background: linear-gradient(to right, transparent 48%, #ddd 48%, #ddd 52%, transparent 52%),
+                linear-gradient(to bottom, transparent 48%, #ddd 48%, #ddd 52%, transparent 52%);
+}
+
+.clouds {
+    position: absolute;
+    top: 20px; left: -100px;
+    width: 50px; height: 30px;
+    background: #fff;
+    /* Minecraft Blocky Clouds */
+    box-shadow: 25px -15px 0 0 #fff, 50px 0 0 0 #fff;
+    animation: drift 10s linear infinite;
+}
+
+@keyframes drift {
+    0% { transform: translateX(-150px); }
+    100% { transform: translateX(350px); }
+}
+
+/* Interactive Boxes */
+#entities-layer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 40%;
+    pointer-events: none;
+}
+
+.box, .bin {
+    position: absolute;
+    bottom: 100%; /* Stand level with the door */
+    width: 80px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.5rem;
+    text-align: center;
+    z-index: 10;
+}
+
+/* Minecraft Chest */
+.box {
+    background: #d68945; 
+    border: 4px solid #3d2314;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.4), 4px 4px 0 #111;
+}
+
+.box::after {
+    content: '';
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    width: 8px; height: 14px;
+    background: #ddd;
+    border: 2px solid #333;
+}
+
+.box.my-doc { left: 400px; }
+.box.public { left: 550px; }
+
+/* Minecraft Cauldron / Lava Bin */
+.bin { 
+    right: 100px; 
+    background: #333; 
+    border: 4px solid #111;
+    border-top: 10px solid #cf3400; /* Lava glowing inside */
+    height: 80px; width: 60px; 
+    box-shadow: inset 0 10px 10px #ff6a00, 4px 4px 0 #111;
+}
+
+.box-label, .bin-label {
+    background: rgba(255,255,255,0.8);
+    color: #000;
+    padding: 2px 4px;
+}
+
+/* Character Sprite (Steve) */
+.character {
+    position: absolute;
+    bottom: 100%; /* Stand level with the door */
+    left: 80px; /* Start near door */
+    width: 20px;
+    height: 60px;
+    background: transparent;
+    z-index: 50;
+    transition: transform 0.2s linear, opacity 0.2s;
+    opacity: 0; 
+}
+
+/* Steve Head */
+.character::before {
+    content: '';
+    position: absolute;
+    top: -20px; left: 0;
+    width: 20px; height: 20px;
+    background: #e8c396; /* Skin */
+    box-shadow: inset 0 4px 0 #4a3424; /* Hair */
+}
+
+/* Steve Body and Legs */
+.character::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 20px; height: 30px;
+    background: #00a8cc; /* Cyan Shirt */
+    box-shadow: 0 30px 0 #3a3f98; /* Purple/Blue Pants */
+}
+
+.username-label {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    background: rgba(0,0,0,0.8);
+    padding: 3px 6px;
+    border: 2px solid #fff;
+    white-space: nowrap;
+}
+
+/* Item being held */
+.held-item {
+    position: absolute;
+    top: 30px; right: -20px;
+    width: 20px; height: 25px;
+    background: #fff;
+    border: 2px solid #000;
+    display: none;
+}
+.character.holding .held-item { display: block; }
+
+/* Event HUD */
+#event-hud {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.8);
+    border: 4px solid #fff;
+    padding: 15px;
+    z-index: 2000;
+    max-width: 400px;
+}
+#event-hud h3 { margin: 0 0 10px 0; color: #ff003c; font-size: 0.8rem; }
+#event-hud p { margin: 0; font-size: 0.7rem; line-height: 1.4; color: #ddd; }

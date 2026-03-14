@@ -16,36 +16,60 @@ $stmt = $db->prepare("SELECT lastlogin, ipaddress FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
 
+$publicDir = __DIR__ . "/../eDoc/public";
 $dir = __DIR__ . "/../eDoc/private/$username";
+$limit = 1024 * 1024 * 1024; // Default storage limit of 1 GB
 
-$fileCount = 0;
-$totalSize = 0;
-$limit = 100 * 1024 * 1024; // 100MB Quota (mock)
+// --- CACHING LOGIC ---
+$privateCacheFile = $dir . "/.stats_cache.json";
+$publicCacheFile = $publicDir . "/.stats_cache.json";
 
-function getStats($dir, &$fileCount, &$totalSize)
-{
-    if (!is_dir($dir))
-        return;
-    $files = scandir($dir);
-    foreach ($files as $file) {
-        if ($file == '.' || $file == '..')
-            continue;
-        $path = "$dir/$file";
-        if (is_dir($path)) {
-            getStats($path, $fileCount, $totalSize);
-        } else {
-            $fileCount++;
-            $totalSize += filesize($path);
+function getCachedOrCalculateStats($targetDir, $cacheFile) {
+    if (file_exists($cacheFile)) {
+        $json = file_get_contents($cacheFile);
+        if ($json) {
+            $data = json_decode($json, true);
+            if ($data && isset($data['fileCount']) && isset($data['totalSize'])) {
+                return $data; // Return cached
+            }
         }
     }
+
+    // Calculate
+    $fileCount = 0;
+    $totalSize = 0;
+    
+    // Internal recursive struct
+    $calc = function($currentDir) use (&$calc, &$fileCount, &$totalSize, $cacheFile) {
+        if (!is_dir($currentDir)) return;
+        $files = scandir($currentDir);
+        foreach ($files as $file) {
+            if ($file == '.' || $file == '..' || $file == basename($cacheFile)) continue;
+            $path = "$currentDir/$file";
+            if (is_dir($path)) {
+                $calc($path);
+            } else {
+                $fileCount++;
+                $totalSize += filesize($path);
+            }
+        }
+    };
+    
+    $calc($targetDir);
+    
+    $result = ['fileCount' => $fileCount, 'totalSize' => $totalSize];
+    file_put_contents($cacheFile, json_encode($result));
+    return $result;
 }
 
-getStats($dir, $fileCount, $totalSize);
+$privateStats = getCachedOrCalculateStats($dir, $privateCacheFile);
+$fileCount = $privateStats['fileCount'];
+$totalSize = $privateStats['totalSize'];
 
-$publicFileCount = 0;
-$publicTotalSize = 0;
-$publicDir = __DIR__ . "/../eDoc/public";
-getStats($publicDir, $publicFileCount, $publicTotalSize);
+$publicStats = getCachedOrCalculateStats($publicDir, $publicCacheFile);
+$publicFileCount = $publicStats['fileCount'];
+$publicTotalSize = $publicStats['totalSize'];
+// --- END CACHING LOGIC ---
 
 // Helper to find avatar
 function getAvatarPath($username)

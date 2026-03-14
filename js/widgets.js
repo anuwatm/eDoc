@@ -128,31 +128,45 @@ class Widgets {
         }
     }
 
+    // Debounce timer
+    static _personUpdateTimer = null;
+
     static async updatePersonWidget() {
-        try {
-            const response = await fetch('api/stats.php');
-            const data = await response.json();
-
-            if (data.success) {
-                document.getElementById('widget-username').innerText = data.username;
-                document.getElementById('widget-avatar').src = data.avatar;
-                document.getElementById('widget-file-count').innerText = data.fileCount;
-
-                // Format Bytes
-                const formatSize = (bytes) => {
-                    if (bytes === 0) return '0 B';
-                    const k = 1024;
-                    const sizes = ['B', 'KB', 'MB', 'GB'];
-                    const i = Math.floor(Math.log(bytes) / Math.log(k));
-                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                };
-
-                document.getElementById('widget-storage-size').innerText = formatSize(data.usedSpace);
-                document.getElementById('widget-storage-progress').style.width = data.percent + '%';
-            }
-        } catch (error) {
-            console.error('Failed to load person widget data', error);
+        if (this._personUpdateTimer) {
+            clearTimeout(this._personUpdateTimer);
         }
+        
+        // Return a promise so callers can still await if they really want to,
+        // though usually they don't depend on the result.
+        return new Promise((resolve) => {
+            this._personUpdateTimer = setTimeout(async () => {
+                try {
+                    const response = await fetch('api/stats.php');
+                    const data = await response.json();
+
+                    if (data.success) {
+                        document.getElementById('widget-username').innerText = data.username;
+                        document.getElementById('widget-avatar').src = data.avatar;
+                        document.getElementById('widget-file-count').innerText = data.fileCount;
+
+                        // Format Bytes
+                        const formatSize = (bytes) => {
+                            if (bytes === 0) return '0 B';
+                            const k = 1024;
+                            const sizes = ['B', 'KB', 'MB', 'GB'];
+                            const i = Math.floor(Math.log(bytes) / Math.log(k));
+                            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                        };
+
+                        document.getElementById('widget-storage-size').innerText = formatSize(data.usedSpace);
+                        document.getElementById('widget-storage-progress').style.width = data.percent + '%';
+                    }
+                } catch (error) {
+                    console.error('Failed to load person widget data', error);
+                }
+                resolve();
+            }, 300); // 300ms debounce
+        });
     }
 
     static startClock() {

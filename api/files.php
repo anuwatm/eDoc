@@ -33,6 +33,14 @@ function resolvePath($requestedPath, $publicBase, $privateBase)
     return [$fullPath, $realBase];
 }
 
+// CACHE INVALIDATION
+function invalidateStatsCache($baseDir) {
+    $cacheFile = $baseDir . '/.stats_cache.json';
+    if (file_exists($cacheFile)) {
+        unlink($cacheFile);
+    }
+}
+
 if ($action === 'list') {
     $type = $_GET['type'] ?? 'private'; // 'private' or 'public'
     $path = $_GET['path'] ?? '';
@@ -104,6 +112,7 @@ if ($action === 'list') {
                 writeLog('UPLOAD', "Uploaded file: $name to $targetDir");
             }
         }
+        if (!empty($uploaded)) invalidateStatsCache($baseDir);
         echo json_encode(['success' => true, 'uploaded' => $uploaded]);
     } else {
         echo json_encode(['success' => false, 'message' => 'No files sent']);
@@ -119,6 +128,7 @@ if ($action === 'list') {
     if (is_file($fullPath)) {
         unlink($fullPath);
         writeLog('DELETE', "Deleted file: $fullPath");
+        invalidateStatsCache($base);
         echo json_encode(['success' => true]);
     } elseif (is_dir($fullPath)) {
         // Recursive Delete
@@ -133,6 +143,7 @@ if ($action === 'list') {
 
         if (delTree($fullPath)) {
             writeLog('DELETE', "Deleted folder: $fullPath");
+            invalidateStatsCache($base);
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to delete folder']);
@@ -148,8 +159,8 @@ if ($action === 'list') {
     // Simple implementation for now: assumes intra-context or explicit prefixes logic needed
     // For MVP/Proto, assume operations are within current User Context usually
     // Enhancing Resolve Logic:
-    list($srcFile, ) = resolvePath($srcPath, $publicBase, $privateBase);
-    list($destFile, ) = resolvePath($destPath, $publicBase, $privateBase);
+    list($srcFile, $srcBase) = resolvePath($srcPath, $publicBase, $privateBase);
+    list($destFile, $destBase) = resolvePath($destPath, $publicBase, $privateBase);
 
     if (!file_exists($srcFile)) {
         echo json_encode(['success' => false, 'message' => 'Source not found']);
@@ -175,6 +186,8 @@ if ($action === 'list') {
     if ($action === 'move') {
         if (rename($srcFile, $destFile)) {
             writeLog('MOVE', "Moved file from $srcFile to $destFile");
+            invalidateStatsCache($srcBase);
+            invalidateStatsCache($destBase);
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to move file (check permissions or lock)']);
@@ -182,11 +195,87 @@ if ($action === 'list') {
     } else {
         if (copy($srcFile, $destFile)) {
             writeLog('COPY', "Copied file from $srcFile to $destFile");
+            invalidateStatsCache($destBase);
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'Failed to copy file']);
         }
     }
+
+} elseif ($action === 'download_zip') {
+    $context = $_POST['context'] ?? $_GET['context'] ?? 'private';
+    // 'paths' can be array (POST) or JSON string (GET)
+    $pathsRaw = $_POST['paths'] ?? $_GET['paths'] ?? [];
+    if (is_string($pathsRaw)) {
+        $paths = json_decode($pathsRaw, true);
+    } else {
+        $paths = $pathsRaw;
+    }
+
+    if (empty($paths) || !is_array($paths)) {
+        echo json_encode(['success' => false, 'message' => 'No paths provided for download']);
+        exit;
+    }
+
+    $base = ($context === 'public') ? $publicBase : $privateBase;
+    
+    // Use the user's directory for the temp file to avoid system temp dir permissions/notices
+    $zipFile = $base . '/.temp_export_' . time() . '_' . rand(1000, 9999) . '.zip';
+    
+    $zip = new ZipArchive();
+    if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        echo json_encode(['success' => false, 'message' => 'Failed to create zip archive']);
+        exit;
+    }
+
+    function addDirToZip($dirPath, $zip, $baseDirInZip = '') {
+        $items = array_diff(scandir($dirPath), array('.', '..'));
+        foreach ($items as $item) {
+            $fullPath = $dirPath . '/' . $item;
+            $localPath = ltrim($baseDirInZip . '/' . $item, '/');
+            
+            if (is_dir($fullPath)) {
+                $zip->addEmptyDir($localPath);
+                addDirToZip($fullPath, $zip, $localPath);
+            } else {
+                $zip->addFile($fullPath, $localPath);
+            }
+        }
+    }
+
+    foreach ($paths as $path) {
+        $cleanPath = str_replace('..', '', $path);
+        $fullPath = $base . '/' . $cleanPath;
+        
+        if (is_dir($fullPath)) {
+            $folderName = basename($fullPath);
+            $zip->addEmptyDir($folderName);
+            addDirToZip($fullPath, $zip, $folderName);
+        } elseif (is_file($fullPath)) {
+            $zip->addFile($fullPath, basename($fullPath));
+        }
+    }
+
+    $zip->close();
+
+    // Log the download action
+    writeLog('DOWNLOAD', "Downloaded " . count($paths) . " item(s) to ZIP.");
+
+    // Suggest a filename: if one path, use its name, else use 'download.zip'
+    $downloadName = 'download.zip';
+    if (count($paths) === 1) {
+        $firstPath = str_replace('..', '', $paths[0]);
+        $downloadName = basename($firstPath) . '.zip';
+    }
+
+    // Stream download
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $downloadName . '"');
+    header('Content-Length: ' . filesize($zipFile));
+    
+    readfile($zipFile);
+    unlink($zipFile);
+    exit;
 
 } elseif ($action === 'read_content') {
     $type = $_GET['type'] ?? 'private';
@@ -203,6 +292,8 @@ if ($action === 'list') {
             $mime = 'text/csv';
         if ($ext === 'json')
             $mime = 'application/json';
+
+        writeLog('READ', "Read file content: $targetFile");
 
         header("Content-Type: $mime");
         readfile($targetFile);

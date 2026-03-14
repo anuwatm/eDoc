@@ -26,6 +26,10 @@ class Desktop {
                     <i class="fa-solid fa-chart-pie" style="color: #e74c3c;"></i>
                     <span>Stat</span>
                 </div>
+                <div class="desktop-icon" onclick="window.open('logview.php', '_blank')">
+                    <i class="fa-solid fa-film" style="color: #9b59b6;"></i>
+                    <span>Log Replay</span>
+                </div>
             </div>
 
             <!-- Widget Area -->
