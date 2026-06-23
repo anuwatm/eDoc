@@ -45,3 +45,5 @@
 [2026-06-23 15:44:02] [::1] [User: admin] [READ] Read file content: DSC04739.jpg
 [2026-06-23 15:46:09] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
 [2026-06-23 15:49:56] [::1] [User: admin] [READ] Read file content: DSC04739.jpg
+[2026-06-23 16:29:53] [::1] [User: admin] [READ] Read file content: DSC04742.jpg
+[2026-06-23 16:29:59] [::1] [User: admin] [READ] Read file content: annual-2024.csv
