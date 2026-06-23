@@ -1,0 +1,47 @@
+[2026-06-23 04:17:37] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-06-23 04:17:52] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-06-23 04:18:00] [::1] [User: admin] [LOGIN] User logged in successfully.
+[2026-06-23 04:21:34] [::1] [User: admin] [READ] Read file content: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/annual-2024.csv
+[2026-06-23 04:22:22] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04499.jpg to C:\LocalDevine\www\eDoc\api/../eDoc/private/admin
+[2026-06-23 04:46:10] [::1] [User: admin] [READ] Read file content: annual-2024.csv
+[2026-06-23 04:47:12] [::1] [User: admin] [READ] Read file content: DSC04499.jpg
+[2026-06-23 04:47:28] [::1] [User: admin] [DELETE] Moved to recycle bin: DSC04499.jpg
+[2026-06-23 10:28:42] [::1] [User: admin] [READ] Read file content: annual-2024.csv
+[2026-06-23 10:33:03] [::1] [User: admin] [READ] Read file content: annual-2024.csv
+[2026-06-23 10:33:12] [::1] [User: admin] [READ] Read file content: annual-2024.csv
+[2026-06-23 10:38:14] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04625.jpg
+[2026-06-23 10:38:20] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04625_20260623_103820_145.jpg
+[2026-06-23 10:45:27] [::1] [User: admin] [DELETE] Moved to recycle bin: DSC04625_20260623_103820_145.jpg
+[2026-06-23 10:45:32] [::1] [User: admin] [READ] Read file content: DSC04625.jpg
+[2026-06-23 10:59:43] [::1] [User: admin] [DELETE_FOREVER] Permanently deleted: DSC04499.jpg
+[2026-06-23 10:59:54] [::1] [User: admin] [DELETE_FOREVER] Permanently deleted: DSC04625_20260623_103820_145.jpg
+[2026-06-23 11:07:22] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04739.jpg
+[2026-06-23 11:07:22] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04742.jpg
+[2026-06-23 11:07:22] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04770.jpg
+[2026-06-23 11:07:22] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04776.jpg
+[2026-06-23 11:08:30] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04511.jpg
+[2026-06-23 11:09:08] [::1] [User: admin] [READ] Read file content: DSC04770.jpg
+[2026-06-23 11:09:23] [::1] [User: admin] [DELETE] Moved to recycle bin: DSC04770.jpg
+[2026-06-23 11:18:57] [::1] [User: admin] [UPLOAD] Uploaded file: DSC04577.jpg
+[2026-06-23 11:19:24] [::1] [User: admin] [DELETE] Moved to recycle bin: DSC04511.jpg
+[2026-06-23 11:19:24] [::1] [User: admin] [DELETE] Moved to recycle bin: DSC04577.jpg
+[2026-06-23 11:19:24] [::1] [User: admin] [DELETE] Moved to recycle bin: DSC04625.jpg
+[2026-06-23 11:19:38] [::1] [User: admin] [DELETE_FOREVER] Permanently deleted: DSC04625.jpg
+[2026-06-23 11:19:42] [::1] [User: admin] [CLEAR_TRASH] Cleared recycle bin: 3 item(s)
+[2026-06-23 11:19:55] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
+[2026-06-23 11:20:06] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
+[2026-06-23 11:46:18] [::1] [User: admin] [MOVE] Move item from C:\LocalDevine\www\eDoc\eDoc\private\admin\DSC04742.jpg to C:\LocalDevine\www\eDoc\eDoc\public\DSC04742.jpg
+[2026-06-23 11:46:32] [::1] [User: admin] [COPY] Copy item from C:\LocalDevine\www\eDoc\eDoc\private\admin\annual-2024.csv to C:\LocalDevine\www\eDoc\eDoc\public\annual-2024.csv
+[2026-06-23 11:46:50] [::1] [User: admin] [READ] Read file content: annual-2024.csv
+[2026-06-23 11:47:11] [::1] [User: admin] [MOVE] Move item from C:\LocalDevine\www\eDoc\eDoc\public\annual-2024.csv to C:\LocalDevine\www\eDoc\eDoc\private\admin/annual-2024_20260623_114711_704.csv
+[2026-06-23 11:47:26] [::1] [User: admin] [MOVE] Move item from C:\LocalDevine\www\eDoc\eDoc\public\DSC04742.jpg to C:\LocalDevine\www\eDoc\eDoc\private\admin\DSC04742.jpg
+[2026-06-23 11:47:38] [::1] [User: admin] [DELETE] Moved to recycle bin: annual-2024_20260623_114711_704.csv
+[2026-06-23 11:47:48] [::1] [User: admin] [READ] Read file content: DSC04739.jpg
+[2026-06-23 11:57:33] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
+[2026-06-23 11:58:00] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
+[2026-06-23 11:58:21] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
+[2026-06-23 15:42:28] [::1] [User: admin] [LOGIN] User logged in successfully.
+[2026-06-23 15:43:05] [::1] [User: admin] [READ] Read file content: DSC04742.jpg
+[2026-06-23 15:44:02] [::1] [User: admin] [READ] Read file content: DSC04739.jpg
+[2026-06-23 15:46:09] [::1] [User: admin] [READ] Read file content: DSC04776.jpg
+[2026-06-23 15:49:56] [::1] [User: admin] [READ] Read file content: DSC04739.jpg

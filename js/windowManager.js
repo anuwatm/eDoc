@@ -47,6 +47,7 @@ class WindowManager {
 
         // Load Content
         this.loadContent(id, type, data);
+        return id;
     }
 
     static close(id) {
@@ -124,11 +125,11 @@ class WindowManager {
         contentArea.innerHTML = '';
 
         if (type === 'my-doc') {
-            FileSystem.load(contentArea, 'my-doc');
+            FileSystem.load(contentArea, 'my-doc', data.path || '');
         } else if (type === 'public-doc') {
-            FileSystem.load(contentArea, 'public-doc');
+            FileSystem.load(contentArea, 'public-doc', data.path || '');
         } else if (type === 'preview-img') {
-            contentArea.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;"><img src="${data.src}" style="max-width:100%; max-height:100%; object-fit:contain;"></div>`;
+            this.renderImageViewer(contentArea, data);
         } else if (type === 'preview-video') {
             contentArea.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;"><video src="${data.src}" controls style="max-width:100%; max-height:100%;"></video></div>`;
         } else if (type === 'csv-viewer') {
@@ -138,8 +139,6 @@ class WindowManager {
                 <div class="loading-spinner">Loading CSV...</div>
             `;
 
-            // Fetch and render async
-            console.log('Fetching CSV from:', data.src);
             fetch(data.src)
                 .then(res => {
                     if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
@@ -263,7 +262,7 @@ class WindowManager {
                                          <div style="background:rgba(0,0,0,0.3); height:8px; border-radius:4px; overflow:hidden; margin-top:10px;">
                                             <div style="background:#2ecc71; width:${data.percent}%; height:100%;"></div>
                                         </div>
-                                        <div style="text-align:right; font-size:0.8em; color:#aaa; margin-top:5px;">${data.percent}% of 100MB</div>
+                                        <div style="text-align:right; font-size:0.8em; color:#aaa; margin-top:5px;">${data.percent}% of ${formatSize(data.totalSpace)}</div>
                                     </div>
 
                                     <!-- Public Stats -->
@@ -290,8 +289,14 @@ class WindowManager {
                 .catch(err => {
                     contentArea.innerHTML = `<p style="color:red; text-align:center;">Error: ${err.message}</p>`;
                 });
-            contentArea.innerHTML = `<p style="padding:20px;">Searching for: <b>${data.term}</b>...</p>`;
-            // Todo: Call Search API
+        } else if (type === 'search-results') {
+            this.renderSearchResults(contentArea, data.term || '');
+        } else if (type === 'trash-window') {
+            this.renderTrash(contentArea);
+        } else if (type === 'recent-files') {
+            this.renderRecentFiles(contentArea);
+        } else if (type === 'dashboard-wizard') {
+            DashboardWizard.render(contentArea);
         } else if (type === 'file-selector') {
             contentArea.innerHTML = `
                 <div style="display:flex; flex-direction:column; height:100%;">
@@ -317,125 +322,386 @@ class WindowManager {
         }
     }
 
-    static renderCSV(container, text) {
-        // Simple CSV Parser
-        const rows = text.trim().split('\n').map(row => {
-            // Check if row contains quotes, if so, use regex, else split by comma
-            if (row.includes('"')) {
-                const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
-                // This regex is basic. Let's use a slightly more robust one or fallback to simple split
-                // Better simple regex for CSV: /,(?=(?:(?:[^"]*"){2})*[^"]*$)/
-                return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, '').trim());
-            }
-            return row.split(',').map(v => v.trim());
-        });
+    static formatSize(bytes) {
+        if (!+bytes) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+    }
 
-        if (rows.length === 0) {
-            container.innerHTML = '<div class="empty-state">Empty CSV</div>';
-            return;
-        }
-
-        const headers = rows[0];
-        const data = rows.slice(1);
-        let filteredData = [...data];
-
+    static renderImageViewer(container, data) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.overflow = 'hidden';
         container.innerHTML = `
-            <div class="csv-toolbar">
-                <input type="text" class="csv-search" placeholder="Search data...">
+            <div class="image-toolbar">
+                <div class="image-tool-group">
+                    <button class="image-tool-btn img-zoom-out" title="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                    <button class="image-tool-btn img-zoom-in" title="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    <button class="image-tool-btn img-fit" title="Fit"><i class="fa-solid fa-expand"></i><span>Fit</span></button>
+                </div>
+                <div class="image-tool-group">
+                    <button class="image-tool-btn img-rotate-left" title="Rotate left"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button class="image-tool-btn img-rotate-right" title="Rotate right"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button class="image-tool-btn img-crop" title="Crop"><i class="fa-solid fa-crop-simple"></i><span>Crop</span></button>
+                </div>
+                <div class="image-tool-group image-crop-actions">
+                    <button class="image-tool-btn image-tool-primary img-apply" title="Apply crop"><i class="fa-solid fa-check"></i><span>Apply</span></button>
+                    <button class="image-tool-btn img-cancel" title="Cancel crop"><i class="fa-solid fa-xmark"></i><span>Cancel</span></button>
+                </div>
+                <button class="image-tool-btn img-download" title="Download"><i class="fa-solid fa-download"></i><span>Download</span></button>
             </div>
-            <div class="csv-table-container">
-                <table class="csv-table">
-                    <thead></thead>
-                    <tbody></tbody>
-                    <tfoot></tfoot>
-                </table>
+            <div class="image-stage">
+                <img class="image-viewer-img" src="${data.src}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;">
             </div>
         `;
 
-        const table = container.querySelector('.csv-table');
-        const thead = table.querySelector('thead');
-        const tbody = table.querySelector('tbody');
-        const tfoot = table.querySelector('tfoot');
-        const searchInput = container.querySelector('.csv-search');
+        const img = container.querySelector('.image-viewer-img');
+        const stage = container.querySelector('.image-stage');
+        const cropBtn = container.querySelector('.img-crop');
+        const applyBtn = container.querySelector('.img-apply');
+        const cancelBtn = container.querySelector('.img-cancel');
+        const cropActions = container.querySelector('.image-crop-actions');
+        const downloadBtn = container.querySelector('.img-download');
+        let zoom = 1;
+        let rotation = 0;
+        let cropMode = false;
+        let cropBox = null;
+        let cropStart = null;
+        let currentSrc = data.src;
 
-        // Column filters
-        const filters = new Array(headers.length).fill('');
-
-        const renderHeader = () => {
-            let tr = document.createElement('tr');
-            headers.forEach((h, i) => {
-                let th = document.createElement('th');
-                th.innerHTML = `
-                    <div>${h}</div>
-                    <input type="text" placeholder="Filter..." data-idx="${i}">
-                `;
-                tr.appendChild(th);
-            });
-            thead.innerHTML = '';
-            thead.appendChild(tr);
-
-            // Bind filter inputs
-            thead.querySelectorAll('input').forEach(input => {
-                input.oninput = (e) => {
-                    filters[e.target.dataset.idx] = e.target.value.toLowerCase();
-                    applyFilters();
-                };
-            });
+        const render = () => {
+            img.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
+            img.style.cursor = cropMode ? 'crosshair' : 'default';
+        };
+        const setCropMode = (active) => {
+            cropMode = active;
+            cropBtn.style.display = active ? 'none' : '';
+            cropActions.style.display = active ? 'flex' : 'none';
+            if (!active && cropBox) {
+                cropBox.remove();
+                cropBox = null;
+            }
+            render();
+        };
+        const getPoint = (e) => {
+            const rect = stage.getBoundingClientRect();
+            return { x: e.clientX - rect.left + stage.scrollLeft, y: e.clientY - rect.top + stage.scrollTop };
         };
 
-        const renderBody = (displayData) => {
-            tbody.innerHTML = '';
-            displayData.forEach(row => {
-                let tr = document.createElement('tr');
-                row.forEach(cell => {
-                    let td = document.createElement('td');
-                    td.textContent = cell;
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            renderFooter(displayData);
+        container.querySelector('.img-zoom-in').onclick = () => { zoom = Math.min(zoom + 0.2, 5); render(); };
+        container.querySelector('.img-zoom-out').onclick = () => { zoom = Math.max(zoom - 0.2, 0.2); render(); };
+        container.querySelector('.img-fit').onclick = () => { zoom = 1; rotation = 0; setCropMode(false); render(); };
+        container.querySelector('.img-rotate-left').onclick = () => { rotation = (rotation - 90) % 360; setCropMode(false); render(); };
+        container.querySelector('.img-rotate-right').onclick = () => { rotation = (rotation + 90) % 360; setCropMode(false); render(); };
+        cropBtn.onclick = () => {
+            if (((rotation % 360) + 360) % 360 !== 0) {
+                Notify.show('Crop works before rotate. Click Fit first, then crop.', 'info');
+                return;
+            }
+            setCropMode(true);
+        };
+        cancelBtn.onclick = () => setCropMode(false);
+        downloadBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = currentSrc;
+            a.download = data.name || 'image';
+            a.click();
         };
 
-        const renderFooter = (displayData) => {
-            tfoot.innerHTML = '';
-            let tr = document.createElement('tr');
-            tr.className = 'csv-footer-row';
+        stage.onmousedown = (e) => {
+            if (!cropMode || e.target !== img) return;
+            e.preventDefault();
+            if (cropBox) cropBox.remove();
+            cropStart = getPoint(e);
+            cropBox = document.createElement('div');
+            cropBox.style.cssText = 'position:absolute;border:2px solid #2ecc71;background:rgba(46,204,113,.18);pointer-events:none;z-index:5;';
+            stage.appendChild(cropBox);
+        };
+        stage.onmousemove = (e) => {
+            if (!cropMode || !cropStart || !cropBox) return;
+            const p = getPoint(e);
+            const left = Math.min(cropStart.x, p.x);
+            const top = Math.min(cropStart.y, p.y);
+            cropBox.style.left = left + 'px';
+            cropBox.style.top = top + 'px';
+            cropBox.style.width = Math.abs(p.x - cropStart.x) + 'px';
+            cropBox.style.height = Math.abs(p.y - cropStart.y) + 'px';
+        };
+        stage.onmouseup = () => { cropStart = null; };
+        applyBtn.onclick = () => {
+            if (!cropBox || !img.naturalWidth || !img.naturalHeight) return;
+            const box = cropBox.getBoundingClientRect();
+            const imgRect = img.getBoundingClientRect();
+            const x = Math.max(0, (box.left - imgRect.left) / imgRect.width);
+            const y = Math.max(0, (box.top - imgRect.top) / imgRect.height);
+            const w = Math.min(1 - x, box.width / imgRect.width);
+            const h = Math.min(1 - y, box.height / imgRect.height);
+            if (w <= 0.01 || h <= 0.01) return;
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.naturalWidth * w);
+            canvas.height = Math.round(img.naturalHeight * h);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, Math.round(img.naturalWidth * x), Math.round(img.naturalHeight * y), canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+            currentSrc = canvas.toDataURL('image/png');
+            img.src = currentSrc;
+            zoom = 1;
+            rotation = 0;
+            setCropMode(false);
+        };
+        img.onload = render;
+        render();
+    }
 
-            headers.forEach((_, i) => {
-                let td = document.createElement('td');
-                // Check if numeric
-                const values = displayData.map(r => parseFloat(r[i])).filter(n => !isNaN(n));
-                if (values.length > 0 && values.length === displayData.length) {
-                    const sum = values.reduce((a, b) => a + b, 0);
-                    const avg = sum / values.length;
-                    td.innerHTML = `Sum: ${sum.toFixed(2)}<br>Avg: ${avg.toFixed(2)}`;
-                } else {
-                    td.innerText = '-';
+    static async renderRecentFiles(container) {
+        container.setAttribute('data-view', 'recent-files');
+        container.innerHTML = '<div class="loading-spinner">Loading recent files...</div>';
+        try {
+            const res = await fetch('api/files.php?action=recent');
+            const data = await res.json();
+            this.renderFileList(container, data.items || [], 'No recent files');
+        } catch (e) {
+            container.innerHTML = '<p class="error">Connection Error</p>';
+        }
+    }
+
+    static async renderTrash(container) {
+        container.setAttribute('data-view', 'trash-window');
+        container.innerHTML = '<div class="loading-spinner">Loading recycle bin...</div>';
+        try {
+            const [privateRes, publicRes] = await Promise.all([
+                fetch('api/files.php?action=trash_list&context=private'),
+                fetch('api/files.php?action=trash_list&context=public')
+            ]);
+            const privateData = await privateRes.json();
+            const publicData = await publicRes.json();
+            const items = [...(privateData.items || []), ...(publicData.items || [])];
+            this.renderTrashList(container, items);
+        } catch (e) {
+            container.innerHTML = '<p class="error">Connection Error</p>';
+        }
+    }
+
+    static renderFileList(container, items, emptyText) {
+        container.innerHTML = '';
+        if (!items.length) {
+            container.innerHTML = `<div class="empty-state">${emptyText}</div>`;
+            return;
+        }
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'file-item';
+            row.style.cssText = 'display:flex;align-items:center;gap:12px;justify-content:flex-start;margin-bottom:8px;padding:10px;width:auto;text-align:left;cursor:pointer;';
+            row.innerHTML = `<i class="fa-solid ${this.iconForExtension(item.type)}" style="font-size:1.4rem;color:#ccc;"></i><div style="min-width:0;"><div style="color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div><div style="color:#aaa;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.context} / ${item.path} • ${this.formatSize(item.size || 0)}</div></div>`;
+            row.onclick = () => this.openSearchResult(item);
+            container.appendChild(row);
+        });
+    }
+
+    static renderTrashList(container, items) {
+        container.innerHTML = `
+            <div class="trash-list" style="flex:1;overflow:auto;padding-right:4px;"></div>
+            <div class="trash-footer" style="padding-top:10px;border-top:1px solid rgba(255,255,255,.12);display:flex;justify-content:flex-end;">
+                <button class="win-btn trash-clear" style="padding:8px 12px;background:#c0392b;border:none;border-radius:6px;color:white;">Clear trash</button>
+            </div>
+        `;
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        const list = container.querySelector('.trash-list');
+        const clearBtn = container.querySelector('.trash-clear');
+        clearBtn.disabled = !items.length;
+        clearBtn.style.opacity = items.length ? '1' : '.45';
+        clearBtn.onclick = () => FileSystem.clearTrash();
+        if (!items.length) {
+            list.innerHTML = '<div class="empty-state">Recycle bin is empty</div>';
+            return;
+        }
+        items.sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;';
+            row.innerHTML = `<i class="fa-solid ${item.isDir ? 'fa-folder' : this.iconForExtension((item.name.split('.').pop() || '').toLowerCase())}" style="font-size:1.4rem;color:${item.isDir ? '#FFD700' : '#ccc'};"></i><div style="min-width:0;flex:1;"><div style="color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div><div style="color:#aaa;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.context} / ${item.originalPath}</div></div><button class="win-btn trash-restore" style="padding:6px 10px;background:var(--primary-color);border:none;border-radius:5px;color:white;">Restore</button><button class="win-btn trash-delete" style="padding:6px 10px;background:#e74c3c;border:none;border-radius:5px;color:white;">Del</button>`;
+            row.querySelector('.trash-restore').onclick = () => FileSystem.restoreTrashItem(item.id, item.context);
+            row.querySelector('.trash-delete').onclick = () => FileSystem.deleteTrashItem(item.id, item.context, item.name);
+            list.appendChild(row);
+        });
+    }
+
+    static renderSearchResults(container, term) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+
+        const query = (term || '').trim();
+
+        container.innerHTML = `
+            <div style="padding:12px; border-bottom:1px solid rgba(255,255,255,0.1);">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <input class="search-window-input" type="text" value="" placeholder="Search files..." style="flex:1; min-width:160px; padding:8px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.25); color:white; outline:none;">
+                    <select class="search-context-filter" style="padding:8px; border-radius:6px; background:#111; color:white; border:1px solid rgba(255,255,255,0.2);">
+                        <option value="All">All</option>
+                        <option value="Private">Private</option>
+                        <option value="Public">Public</option>
+                    </select>
+                    <select class="search-sort" style="padding:8px; border-radius:6px; background:#111; color:white; border:1px solid rgba(255,255,255,0.2);">
+                        <option value="name">Name</option>
+                        <option value="type">Type</option>
+                        <option value="context">Location</option>
+                    </select>
+                    <button class="win-btn search-window-btn" style="padding:8px 12px; background:var(--primary-color); border:none; border-radius:6px; color:white;">Search</button>
+                </div>
+            </div>
+            <div class="search-window-results" style="flex:1; overflow:auto; padding:10px;">
+                <div class="loading-spinner">Searching...</div>
+            </div>
+        `;
+
+        const input = container.querySelector('.search-window-input');
+        const button = container.querySelector('.search-window-btn');
+        const contextFilter = container.querySelector('.search-context-filter');
+        const sortSelect = container.querySelector('.search-sort');
+        const resultsArea = container.querySelector('.search-window-results');
+        input.value = query;
+        let lastResults = [];
+
+        const renderCurrentResults = () => {
+            const context = contextFilter.value;
+            const sortBy = sortSelect.value;
+            const filtered = lastResults
+                .filter(item => context === 'All' || item.context === context)
+                .sort((a, b) => String(a[sortBy] || '').localeCompare(String(b[sortBy] || '')) || String(a.name || '').localeCompare(String(b.name || '')));
+            this.renderSearchList(resultsArea, filtered, input.value.trim());
+        };
+
+        const runSearch = async () => {
+            const nextQuery = input.value.trim();
+            if (!nextQuery) {
+                resultsArea.innerHTML = '<div class="empty-state">Enter a search term.</div>';
+                return;
+            }
+
+            resultsArea.innerHTML = '<div class="loading-spinner">Searching...</div>';
+            try {
+                const response = await fetch(`api/search.php?q=${encodeURIComponent(nextQuery)}`);
+                const result = await response.json();
+                if (!result.success) {
+                    resultsArea.innerHTML = `<p class="error">Error: ${result.message || 'Search failed'}</p>`;
+                    return;
                 }
-                tr.appendChild(td);
-            });
-            tfoot.appendChild(tr);
+
+                lastResults = result.results || [];
+                renderCurrentResults();
+            } catch (err) {
+                resultsArea.innerHTML = `<p class="error">Connection Error: ${err.message}</p>`;
+            }
         };
 
-        const applyFilters = () => {
-            const term = searchInput.value.toLowerCase();
-            filteredData = data.filter(row => {
-                // Global search
-                const matchesGlobal = term === '' || row.some(cell => cell.toLowerCase().includes(term));
-                // Column filters
-                const matchesCols = row.every((cell, i) => {
-                    return filters[i] === '' || cell.toLowerCase().includes(filters[i]);
-                });
-                return matchesGlobal && matchesCols;
-            });
-            renderBody(filteredData);
+        button.onclick = runSearch;
+        contextFilter.onchange = renderCurrentResults;
+        sortSelect.onchange = renderCurrentResults;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') runSearch();
         };
 
-        searchInput.oninput = applyFilters;
+        if (query) {
+            runSearch();
+        } else {
+            resultsArea.innerHTML = '<div class="empty-state">Enter a search term.</div>';
+            input.focus();
+        }
+    }
 
-        renderHeader();
-        applyFilters(); // Initial render
+    static renderSearchList(container, results, term) {
+        container.innerHTML = '';
+
+        const summary = document.createElement('div');
+        summary.style.marginBottom = '10px';
+        summary.style.color = '#aaa';
+        summary.style.fontSize = '0.9em';
+        summary.textContent = `${results.length} result(s) for "${term}"`;
+        container.appendChild(summary);
+
+        if (results.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = 'No files found';
+            container.appendChild(empty);
+            return;
+        }
+
+        results.forEach(result => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.style.display = 'flex';
+            item.style.alignItems = 'center';
+            item.style.gap = '12px';
+            item.style.justifyContent = 'flex-start';
+            item.style.marginBottom = '8px';
+            item.style.padding = '10px';
+            item.style.width = 'auto';
+            item.style.textAlign = 'left';
+            item.style.cursor = 'pointer';
+
+            const isFolder = result.type === 'folder';
+            const icon = document.createElement('i');
+            icon.className = `fa-solid ${isFolder ? 'fa-folder' : this.iconForExtension(result.type)}`;
+            icon.style.color = isFolder ? '#FFD700' : '#ccc';
+            icon.style.fontSize = '1.4rem';
+
+            const textWrap = document.createElement('div');
+            textWrap.style.minWidth = '0';
+
+            const name = document.createElement('div');
+            name.style.color = '#fff';
+            name.style.fontWeight = '600';
+            name.style.whiteSpace = 'nowrap';
+            name.style.overflow = 'hidden';
+            name.style.textOverflow = 'ellipsis';
+            name.textContent = result.name;
+
+            const path = document.createElement('div');
+            path.style.color = '#aaa';
+            path.style.fontSize = '0.8em';
+            path.style.whiteSpace = 'nowrap';
+            path.style.overflow = 'hidden';
+            path.style.textOverflow = 'ellipsis';
+            path.textContent = `${result.context} / ${result.path}`;
+
+            textWrap.appendChild(name);
+            textWrap.appendChild(path);
+            item.appendChild(icon);
+            item.appendChild(textWrap);
+            item.onclick = () => this.openSearchResult(result);
+
+            container.appendChild(item);
+        });
+    }
+
+    static iconForExtension(ext) {
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'fa-image';
+        if (ext === 'mp4') return 'fa-film';
+        if (ext === 'csv') return 'fa-file-csv';
+        if (ext === 'pdf') return 'fa-file-pdf';
+        if (['zip', 'rar'].includes(ext)) return 'fa-file-zipper';
+        if (['doc', 'docx'].includes(ext)) return 'fa-file-word';
+        return 'fa-file';
+    }
+
+    static openSearchResult(result) {
+        const type = result.context === 'Public' ? 'public-doc' : 'my-doc';
+        const title = type === 'public-doc' ? 'Public Document' : 'My Document';
+
+        if (result.type === 'folder') {
+            this.open(title, type, { path: result.path });
+            return;
+        }
+
+        FileSystem.preview({
+            name: result.name,
+            isDir: false,
+            type: result.type,
+            relPath: result.path
+        }, type);
     }
 
     static maximize(id) {

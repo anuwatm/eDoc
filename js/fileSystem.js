@@ -64,7 +64,7 @@ class FileSystem {
             let iconColor = '#ccc';
 
             if (file.isDir) { iconClass = 'fa-folder'; iconColor = '#FFD700'; }
-            else if (['jpg', 'png', 'jpeg', 'gif'].includes(file.type)) { iconClass = 'fa-image'; iconColor = '#00BFFF'; }
+            else if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) { iconClass = 'fa-image'; iconColor = '#00BFFF'; }
             else if (file.type === 'mp4') { iconClass = 'fa-film'; iconColor = '#FF4500'; }
             else if (file.type === 'csv') { iconClass = 'fa-file-csv'; iconColor = '#32CD32'; }
             else if (file.type === 'pdf') { iconClass = 'fa-file-pdf'; iconColor = '#FF0000'; }
@@ -113,21 +113,13 @@ class FileSystem {
     }
 
     static preview(file, contextType) {
-        // For images/videos, we try direct link (assuming public or served via web server)
-        // For CSV, we now use the API to read content securely
-        const basePath = contextType === 'my-doc' ? `private/${window.currentUser}` : 'public';
-        const path = `${basePath}/${file.relPath}`;
+        const apiUrl = `api/files.php?action=read_content&type=${contextType === 'my-doc' ? 'private' : 'public'}&path=${encodeURIComponent(file.relPath)}`;
 
-        if (['jpg', 'png', 'jpeg', 'gif'].includes(file.type)) {
-            // Images might still need the 'eDoc/' prefix if we are determining relative URL from browser
-            const imgPath = `eDoc/${path}`;
-            WindowManager.open(`Preview: ${file.name}`, 'preview-img', { src: imgPath });
+        if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) {
+            WindowManager.open(`Preview: ${file.name}`, 'preview-img', { src: apiUrl, name: file.name });
         } else if (file.type === 'mp4') {
-            const vidPath = `eDoc/${path}`;
-            WindowManager.open(`Preview: ${file.name}`, 'preview-video', { src: vidPath });
+            WindowManager.open(`Preview: ${file.name}`, 'preview-video', { src: apiUrl });
         } else if (file.type === 'csv') {
-            // USE API PROXY
-            const apiUrl = `api/files.php?action=read_content&type=${contextType === 'my-doc' ? 'private' : 'public'}&path=${file.relPath}`;
             WindowManager.open(`Pivot: ${file.name}`, 'csv-viewer', { src: apiUrl });
         } else {
             Notify.show('No preview available for this file type.', 'info');
@@ -224,6 +216,84 @@ class FileSystem {
         document.querySelectorAll(`.window-content[data-type="${targetType}"]`).forEach(c => {
             this.load(c, targetType, c.getAttribute('data-path'));
         });
+    }
+
+
+    static refreshViews(type = null) {
+        const targetType = type ? (type === 'my-doc' ? 'my-doc' : 'public-doc') : null;
+        document.querySelectorAll('.window-content[data-type]').forEach(container => {
+            const currentType = container.getAttribute('data-type');
+            if (!targetType || currentType === targetType) {
+                this.load(container, currentType, container.getAttribute('data-path') || '');
+            }
+        });
+        document.querySelectorAll('.window-content[data-view="trash-window"]').forEach(container => WindowManager.renderTrash(container));
+        document.querySelectorAll('.window-content[data-view="recent-files"]').forEach(container => WindowManager.renderRecentFiles(container));
+    }
+
+    static async restoreTrashItem(id, context) {
+        const formData = new FormData();
+        formData.append('action', 'trash_restore');
+        formData.append('id', id);
+        formData.append('context', context.toLowerCase());
+
+        try {
+            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                Notify.show('Restored successfully', 'success');
+                this.refreshViews();
+                if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
+            } else {
+                Notify.show(`Error: ${data.message}`, 'error');
+            }
+        } catch (e) {
+            Notify.show('Connection error', 'error');
+        }
+    }
+
+    static async deleteTrashItem(id, context, name) {
+        const safeName = String(name || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        if (!await Modal.confirm('Delete forever', `Permanently delete <b>${safeName}</b>?<br>This cannot be undone.`)) return;
+
+        const formData = new FormData();
+        formData.append('action', 'trash_delete');
+        formData.append('id', id);
+        formData.append('context', context.toLowerCase());
+
+        try {
+            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                Notify.show('Deleted forever', 'success');
+                this.refreshViews();
+                if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
+            } else {
+                Notify.show(`Error: ${data.message}`, 'error');
+            }
+        } catch (e) {
+            Notify.show('Connection error', 'error');
+        }
+    }
+    static async clearTrash() {
+        if (!await Modal.confirm('Clear trash', 'Permanently delete <b>all files</b> in Trash?<br>This cannot be undone.')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'trash_clear');
+
+        try {
+            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            if (data.success) {
+                Notify.show('Trash cleared', 'success');
+                this.refreshViews();
+                if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
+            } else {
+                Notify.show(`Error: ${data.message}`, 'error');
+            }
+        } catch (e) {
+            Notify.show('Connection error', 'error');
+        }
     }
 
     // Download ZIP
@@ -402,7 +472,8 @@ class FileSystem {
             dropZone.classList.remove('drag-over');
 
             if (e.dataTransfer.files.length > 0) {
-                this.handleUploadQueue(e.dataTransfer.files, type, path, container);
+                const destination = container.querySelector('#upload-destination')?.value || type;
+                this.handleUploadQueue(e.dataTransfer.files, destination, path, container);
             }
         };
     }
@@ -601,9 +672,10 @@ class FileSystem {
     static processUpload(files, type, path, container, onSuccess, onError, onProgress) {
         return new Promise((resolve, reject) => {
             const formData = new FormData();
+            const uploadType = (type === 'my-doc' || type === 'private') ? 'private' : 'public';
             formData.append('action', 'upload');
-            formData.append('type', type === 'my-doc' ? 'private' : 'public');
-            formData.append('path', path);
+            formData.append('type', uploadType);
+            formData.append('path', path || '');
 
             // Append files
             if (files instanceof FileList || Array.isArray(files)) {
@@ -622,33 +694,40 @@ class FileSystem {
                     if (onProgress) onProgress(percent);
                 }
             };
-
             xhr.onload = () => {
-                if (xhr.status === 200) {
-                    try {
-                        const data = JSON.parse(xhr.responseText);
-                        if (data.success) {
-                            Notify.show('File(s) uploaded successfully', 'success');
-                            // Refresh
-                            if (container) {
-                                this.load(container, type, path);
-                            }
-                            if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
-                            if (onSuccess) onSuccess();
-                            resolve(data);
-                        } else {
-                            if (onError) onError(data.message);
-                            else Notify.show('Upload failed: ' + data.message, 'error');
-                            resolve(false);
-                        }
-                    } catch (e) {
-                        if (onError) onError('Invalid server response');
-                        resolve(false);
+                const raw = xhr.responseText || '';
+                let data = null;
+                try {
+                    data = JSON.parse(raw.trim());
+                } catch (e) {
+                    const match = raw.match(/\{[\s\S]*\}\s*$/);
+                    if (match) {
+                        try { data = JSON.parse(match[0]); } catch (_) {}
                     }
-                } else {
-                    if (onError) onError(`HTTP Error ${xhr.status}`);
-                    resolve(false);
                 }
+
+                if (!data) {
+                    console.error('Upload invalid response:', raw);
+                    if (onError) onError('Invalid server response. Check console for raw response.');
+                    resolve(false);
+                    return;
+                }
+
+                if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+                    Notify.show('File(s) uploaded successfully', 'success');
+                    if (container) {
+                        this.load(container, type, path || '');
+                    }
+                    if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
+                    if (onSuccess) onSuccess();
+                    resolve(data);
+                    return;
+                }
+
+                const message = data.message || `HTTP Error ${xhr.status}`;
+                if (onError) onError(message);
+                else Notify.show('Upload failed: ' + message, 'error');
+                resolve(false);
             };
 
             xhr.onerror = () => {

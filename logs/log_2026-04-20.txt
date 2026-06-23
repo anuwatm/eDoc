@@ -1,0 +1,10 @@
+[2026-04-20 08:25:03] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:25:10] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:25:17] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:27:00] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:27:32] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:27:38] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:28:14] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:28:22] [::1] [User: admin] [FAILED_LOGIN] Attempted login failed for username: admin
+[2026-04-20 08:28:32] [::1] [User: admin] [LOGIN] User logged in successfully.
+[2026-04-20 08:29:55] [::1] [User: admin] [READ] Read file content: C:\LocalDevine\www\eDoc\api/../eDoc/private/admin/annual-2024.csv

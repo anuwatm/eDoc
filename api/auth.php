@@ -10,8 +10,8 @@ if ($action === 'register') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if (empty($username) || strlen($password) < 6) {
-        echo json_encode(['success' => false, 'message' => 'Invalid username or password (min 6 chars).']);
+    if (!preg_match('/^[A-Za-z0-9_-]{3,32}$/', $username) || strlen($password) < 6) {
+        echo json_encode(['success' => false, 'message' => 'Invalid username (3-32 letters, numbers, _ or -) or password (min 6 chars).']);
         exit;
     }
 

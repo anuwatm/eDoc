@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const authContainer = document.getElementById('auth-container');
     if (authContainer && authContainer.classList.contains('hidden')) {
         window.desktopApp = new Desktop();
-        console.log('Desktop Environment Loaded');
     }
 
     // Init Notifications & Modals

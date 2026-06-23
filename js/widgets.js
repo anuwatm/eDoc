@@ -105,13 +105,13 @@ class Widgets {
         previewContainer.innerHTML = ''; // Clear
 
         const realBasePath = type === 'my-doc' ? `private/${window.currentUser}` : 'public';
-        const fullWebPath = `eDoc/${realBasePath}/${file.relPath}`;
+        const previewUrl = `eDoc/${realBasePath}/${file.relPath}`;
 
         if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) {
-            previewContainer.innerHTML = `<img src="${fullWebPath}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
+            previewContainer.innerHTML = `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
         } else if (file.type === 'mp4') {
             previewContainer.innerHTML = `
-                <video src="${fullWebPath}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;" muted loop autoplay></video>
+                <video src="${previewUrl}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;" muted loop autoplay></video>
              `;
         } else {
             // Icons based on type

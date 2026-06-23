@@ -12,21 +12,30 @@
 
 /* Icon Area (Left) */
 #desktop-icons {
+    --desktop-icon-size: 92px;
+    --desktop-icon-gap: 16px;
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    flex-flow: column wrap;
+    align-content: flex-start;
+    gap: var(--desktop-icon-gap);
     position: absolute;
     top: 20px;
     left: 20px;
+    max-height: calc(100vh - 130px);
+    max-width: calc(100vw - 360px);
+    overflow: auto;
     z-index: 10;
+    padding: 2px 8px 8px 2px;
+    scrollbar-width: thin;
 }
 
 .desktop-icon {
-    width: 80px;
+    width: var(--desktop-icon-size);
+    min-height: var(--desktop-icon-size);
     text-align: center;
     cursor: pointer;
     transition: transform 0.2s, background 0.2s;
-    padding: 10px;
+    padding: 8px;
     border-radius: 8px;
 }
 
@@ -49,6 +58,7 @@
     display: block;
     line-height: 1.2;
 }
+
 
 /* Widget Area (Right) */
 #widget-area {
@@ -328,4 +338,33 @@
 
 .taskbar-icon.logout:hover {
     color: var(--danger-color);
+}
+@media (max-width: 1020px) {
+    #desktop-icons {
+        max-width: calc(100vw - 40px);
+    }
+}
+
+@media (max-height: 760px), (max-width: 760px) {
+    #desktop-icons {
+        --desktop-icon-size: 82px;
+        --desktop-icon-gap: 10px;
+        max-height: calc(100vh - 112px);
+    }
+
+    .desktop-icon i {
+        font-size: 2.45rem;
+    }
+
+    .desktop-icon span {
+        font-size: 0.78rem;
+    }
+}
+
+@media (max-width: 520px) {
+    #desktop-icons {
+        flex-flow: row wrap;
+        right: 20px;
+        max-height: calc(100vh - 118px);
+    }
 }

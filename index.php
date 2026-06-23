@@ -15,7 +15,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Styles -->
     <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/desktop.css">
+    <link rel="stylesheet" href="css/desktop.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="css/window.css">
 
     <link rel="stylesheet" href="css/fileSystem.css">
@@ -91,6 +91,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <script src="js/windowManager.js?v=<?php echo time(); ?>"></script>
     <script src="js/desktop.js?v=<?php echo time(); ?>"></script>
     <script src="js/fileSystem.js?v=<?php echo time(); ?>"></script>
+    <script src="js/dashboardWizard.js?v=<?php echo time(); ?>"></script>
     <script src="js/widgets.js?v=<?php echo time(); ?>"></script>
 
     <script src="js/app.js?v=<?php echo time(); ?>"></script>

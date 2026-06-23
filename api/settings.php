@@ -18,8 +18,14 @@ if (isset($_FILES['file'])) {
     $tmp = $file['tmp_name'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-        echo json_encode(['success' => false, 'message' => 'Invalid image format']);
+    if ($file['size'] > 5 * 1024 * 1024 || !in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid image format or size']);
+        exit;
+    }
+
+    $imageInfo = getimagesize($tmp);
+    if (!$imageInfo || !in_array($imageInfo['mime'], ['image/jpeg', 'image/png', 'image/gif'])) {
+        echo json_encode(['success' => false, 'message' => 'Invalid image content']);
         exit;
     }
 
