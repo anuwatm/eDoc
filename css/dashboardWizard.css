@@ -1,0 +1,439 @@
+/* Dashboard Wizard */
+
+.dw-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.dw-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.dw-header-title {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dw-header-meta {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.dw-steps {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.dw-step {
+    flex: 1;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ccc;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.dw-step:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.dw-step.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    font-weight: 600;
+}
+
+.dw-step:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.dw-body {
+    flex: 1;
+    overflow: auto;
+    padding: 14px;
+    min-height: 0;
+}
+
+.dw-hint {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+    line-height: 1.45;
+}
+
+.dw-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.dw-summary-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(37, 117, 252, 0.15);
+    border: 1px solid rgba(37, 117, 252, 0.25);
+    color: #dce9ff;
+    font-size: 0.82rem;
+}
+
+.dw-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.dw-input,
+.dw-select {
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-size: 0.88rem;
+}
+
+.dw-input {
+    flex: 1;
+    min-width: 140px;
+}
+
+.dw-select {
+    min-width: 110px;
+}
+
+.dw-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dw-file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.dw-file-row:hover {
+    background: rgba(37, 117, 252, 0.12);
+    border-color: rgba(37, 117, 252, 0.3);
+}
+
+.dw-file-row i {
+    color: #32cd32;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+}
+
+.dw-file-name {
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dw-file-path {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dw-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.dw-field label {
+    display: block;
+    color: #ccc;
+    font-size: 0.82rem;
+    margin-bottom: 5px;
+}
+
+.dw-field .dw-select {
+    width: 100%;
+}
+
+.dw-field-hint {
+    color: #888;
+    font-size: 0.75rem;
+    margin-top: 3px;
+}
+
+.dw-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.dw-btn {
+    padding: 9px 14px;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.dw-btn:hover {
+    opacity: 0.9;
+}
+
+.dw-btn:active {
+    transform: scale(0.98);
+}
+
+.dw-btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.dw-btn-success {
+    background: var(--success-color);
+}
+
+.dw-btn-ghost {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.dw-preview-area {
+    min-height: 280px;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+}
+
+.dw-preview-area canvas {
+    max-height: 100%;
+}
+
+.dw-chart-wrap {
+    position: relative;
+    height: 260px;
+    width: 100%;
+}
+
+.dw-kpi {
+    display: flex;
+    height: 100%;
+    min-height: 200px;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.dw-kpi-value {
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.1;
+}
+
+.dw-kpi-label {
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-size: 0.9rem;
+}
+
+.dw-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+    font-size: 0.88rem;
+}
+
+.dw-table th,
+.dw-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dw-table th {
+    text-align: left;
+    color: #aaa;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    background: rgba(15, 12, 41, 0.95);
+}
+
+.dw-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.dw-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.dw-card {
+    min-height: 320px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.dw-card-title {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding-right: 60px;
+    margin-bottom: 4px;
+}
+
+.dw-card-sub {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+}
+
+.dw-card-body {
+    flex: 1;
+    min-height: 240px;
+}
+
+.dw-card-actions {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    display: flex;
+    gap: 4px;
+}
+
+.dw-card-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dw-card-btn-edit {
+    background: rgba(37, 117, 252, 0.7);
+}
+
+.dw-card-btn-delete {
+    background: rgba(231, 76, 60, 0.85);
+}
+
+.dw-sample-table {
+    margin-top: 14px;
+    max-height: 160px;
+    overflow: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dw-filter-panel {
+    margin-bottom: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dw-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.dw-filter-header span {
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.dw-filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dw-filter-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr 32px;
+    gap: 8px;
+    align-items: center;
+}
+
+.dw-filter-row .dw-select,
+.dw-filter-row .dw-input {
+    width: 100%;
+    min-width: 0;
+}
+
+.dw-filter-remove {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(231, 76, 60, 0.75);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dw-filter-status {
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.dw-filter-status.active {
+    color: #9fd0ff;
+}
+
+.dw-filter-empty {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-style: italic;
+}

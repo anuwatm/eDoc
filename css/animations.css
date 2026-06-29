@@ -1,0 +1,207 @@
+/* css/animations.css — shared motion system */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeOutScale {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(28px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideUpDock {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.88);
+    }
+    70% {
+        transform: scale(1.03);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes pulseRing {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(37, 117, 252, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(37, 117, 252, 0);
+    }
+}
+
+@keyframes meshDrift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+@keyframes iconBob {
+    0%, 100% {
+        transform: translateY(0) scale(1.05);
+    }
+    50% {
+        transform: translateY(-4px) scale(1.08);
+    }
+}
+
+/* Subtle living background */
+body {
+    background-size: 200% 200%;
+    animation: meshDrift 18s ease infinite;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 120px;
+    color: #aaa;
+    font-size: 0.95rem;
+    animation: fadeInUp 0.35s ease-out both;
+}
+
+.loading-spinner::before {
+    content: '';
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.12);
+    border-top-color: var(--secondary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Desktop entrance */
+#desktop-container.desktop-ready #desktop-icons .desktop-icon {
+    animation: fadeInUp 0.5s ease-out both;
+}
+
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(1) { animation-delay: 0.04s; }
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(2) { animation-delay: 0.08s; }
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(3) { animation-delay: 0.12s; }
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(4) { animation-delay: 0.16s; }
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(5) { animation-delay: 0.20s; }
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(6) { animation-delay: 0.24s; }
+#desktop-container.desktop-ready #desktop-icons .desktop-icon:nth-child(7) { animation-delay: 0.28s; }
+
+#desktop-container.desktop-ready #widget-area .widget-card {
+    animation: slideInRight 0.55s ease-out both;
+}
+
+#desktop-container.desktop-ready #widget-area .widget-card:nth-child(1) { animation-delay: 0.1s; }
+#desktop-container.desktop-ready #widget-area .widget-card:nth-child(2) { animation-delay: 0.18s; }
+#desktop-container.desktop-ready #widget-area .widget-card:nth-child(3) { animation-delay: 0.26s; }
+
+#desktop-container.desktop-ready #taskbar {
+    animation: slideUpDock 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.15s;
+}
+
+#desktop-container.desktop-ready {
+    animation: fadeInScale 0.45s ease-out both;
+}
+
+.widget-pop-in {
+    animation: popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Auth form switch */
+#login-form:not(.hidden),
+#register-form:not(.hidden) {
+    animation: fadeInUp 0.35s ease-out both;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    body {
+        animation: none;
+    }
+}

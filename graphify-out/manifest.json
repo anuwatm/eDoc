@@ -1,0 +1,157 @@
+{
+  "C:\\LocalDevine\\www\\eDoc\\api\\auth.php": {
+    "mtime": 1782189731.9753492,
+    "ast_hash": "727e19ddcd31c969920da11f8d6762d8",
+    "semantic_hash": "727e19ddcd31c969920da11f8d6762d8"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\db.php": {
+    "mtime": 1773427383.275119,
+    "ast_hash": "33d4f9ee50fb712f432bab8f6d95133a",
+    "semantic_hash": "33d4f9ee50fb712f432bab8f6d95133a"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\files.php": {
+    "mtime": 1782212737.7996378,
+    "ast_hash": "ecfde32fcdac0b134a64bd6c0d59a82c",
+    "semantic_hash": "ecfde32fcdac0b134a64bd6c0d59a82c"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\get_logs.php": {
+    "mtime": 1773466016.169279,
+    "ast_hash": "aab451a17ea7f93836361684fa47e493",
+    "semantic_hash": "aab451a17ea7f93836361684fa47e493"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\logger.php": {
+    "mtime": 1770830019.81598,
+    "ast_hash": "2c567c4b506f1329f75058bb19b4e1d3",
+    "semantic_hash": "2c567c4b506f1329f75058bb19b4e1d3"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\search.php": {
+    "mtime": 1782189388.6798694,
+    "ast_hash": "76bb09c7dbbf0a279782c37a62cafdf1",
+    "semantic_hash": "76bb09c7dbbf0a279782c37a62cafdf1"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\settings.php": {
+    "mtime": 1782189731.9763465,
+    "ast_hash": "03964453d83392e83793965657ecb5c0",
+    "semantic_hash": "03964453d83392e83793965657ecb5c0"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\api\\stats.php": {
+    "mtime": 1782187492.8835685,
+    "ast_hash": "231fafe86ead73a34e0c125ca55f1c4d",
+    "semantic_hash": "231fafe86ead73a34e0c125ca55f1c4d"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\check_config.php": {
+    "mtime": 1773504960.888368,
+    "ast_hash": "71adc8a230616677d55f10799c3c9b28",
+    "semantic_hash": "71adc8a230616677d55f10799c3c9b28"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\eDoc\\private\\admin\\.stats_cache.json": {
+    "mtime": 1782215259.1437356,
+    "ast_hash": "ffe79cc14f4e69d638e797f0f911658b",
+    "semantic_hash": "ffe79cc14f4e69d638e797f0f911658b"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\eDoc\\private\\admin\\.trash\\.trash.json": {
+    "mtime": 1782215258.542719,
+    "ast_hash": "e1d7da2069793948afbf16d5ba92450b",
+    "semantic_hash": "e1d7da2069793948afbf16d5ba92450b"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\eDoc\\public\\.stats_cache.json": {
+    "mtime": 1782215247.3765378,
+    "ast_hash": "f1a4eb502a9b6c25bf998274030edabc",
+    "semantic_hash": "f1a4eb502a9b6c25bf998274030edabc"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\eDoc\\public\\.trash\\.trash.json": {
+    "mtime": 1782213582.023453,
+    "ast_hash": "d751713988987e9331980363e24189ce",
+    "semantic_hash": "d751713988987e9331980363e24189ce"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\index.php": {
+    "mtime": 1782211583.112829,
+    "ast_hash": "ff8af5896dae6d6ee01cdb88863dfb20",
+    "semantic_hash": "ff8af5896dae6d6ee01cdb88863dfb20"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\app.js": {
+    "mtime": 1782187709.7556732,
+    "ast_hash": "e6b3145e8f309ce4206721f635c39cea",
+    "semantic_hash": "e6b3145e8f309ce4206721f635c39cea"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\auth.js": {
+    "mtime": 1770367134.586141,
+    "ast_hash": "65235cca3318df50c61374c6eec18ee0",
+    "semantic_hash": "65235cca3318df50c61374c6eec18ee0"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\dashboardWizard.js": {
+    "mtime": 1782210661.0215325,
+    "ast_hash": "206961b7a8dfefbd28dea0814b02bfef",
+    "semantic_hash": "206961b7a8dfefbd28dea0814b02bfef"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\desktop.js": {
+    "mtime": 1782230409.2618382,
+    "ast_hash": "aa3d6b55762059cd3fcd5b5c299ecfaf",
+    "semantic_hash": "aa3d6b55762059cd3fcd5b5c299ecfaf"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\fileSystem.js": {
+    "mtime": 1782215575.4453561,
+    "ast_hash": "2810eb5b5217a4b5261db2fe20617564",
+    "semantic_hash": "2810eb5b5217a4b5261db2fe20617564"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\logview.js": {
+    "mtime": 1773467427.8432734,
+    "ast_hash": "e76631bdfefededd336a71d54c57815a",
+    "semantic_hash": "e76631bdfefededd336a71d54c57815a"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\widgets.js": {
+    "mtime": 1782189281.9982433,
+    "ast_hash": "3a1629e5d1457161c2ba2b14b1a78446",
+    "semantic_hash": "3a1629e5d1457161c2ba2b14b1a78446"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\js\\windowManager.js": {
+    "mtime": 1782229736.9442945,
+    "ast_hash": "efdc08d50f65014b7735fa840e0d78df",
+    "semantic_hash": "efdc08d50f65014b7735fa840e0d78df"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\logview.php": {
+    "mtime": 1773466018.1882012,
+    "ast_hash": "da8a6237da24299c67ba6dd5c5f76dd3",
+    "semantic_hash": "da8a6237da24299c67ba6dd5c5f76dd3"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\test_cache.php": {
+    "mtime": 1773427524.6265278,
+    "ast_hash": "71e60a170e040dfdefb9a82da34e4c14",
+    "semantic_hash": "71e60a170e040dfdefb9a82da34e4c14"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\test_cache2.php": {
+    "mtime": 1773427543.318534,
+    "ast_hash": "d5bb049ed8a2c8e5e8880dae13da8459",
+    "semantic_hash": "d5bb049ed8a2c8e5e8880dae13da8459"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\AGENTS.md": {
+    "mtime": 1782151011.085841,
+    "ast_hash": "b60af850d404a90f0b9861e0d09c6235",
+    "semantic_hash": "b60af850d404a90f0b9861e0d09c6235"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\README.md": {
+    "mtime": 1782230913.7334735,
+    "ast_hash": "186b1ea88f97753b6fef77d6071e3672",
+    "semantic_hash": "186b1ea88f97753b6fef77d6071e3672"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\logs\\log_2026-03-14.txt": {
+    "mtime": 1773464884.0468132,
+    "ast_hash": "6446c4ad0a3bea02aa65af9e0986dcec",
+    "semantic_hash": "6446c4ad0a3bea02aa65af9e0986dcec"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\logs\\log_2026-04-20.txt": {
+    "mtime": 1776673795.4949243,
+    "ast_hash": "0e75d23b6e0dd6d3f449ce90826bff26",
+    "semantic_hash": "0e75d23b6e0dd6d3f449ce90826bff26"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\logs\\log_2026-06-23.txt": {
+    "mtime": 1782232199.8184772,
+    "ast_hash": "5bd5230527d25969701f5197721a79d6",
+    "semantic_hash": "5bd5230527d25969701f5197721a79d6"
+  },
+  "C:\\LocalDevine\\www\\eDoc\\eDoc\\private\\admin\\avatar\\avatar.png": {
+    "mtime": 1770368272.6859372,
+    "ast_hash": "deab129cac1c0758465a1a30b584fc87",
+    "semantic_hash": "deab129cac1c0758465a1a30b584fc87"
+  }
+}

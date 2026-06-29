@@ -89,7 +89,12 @@ body {
     color: #fff;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(37, 117, 252, 0.35);
 }
 
 .btn-primary:active {
@@ -369,6 +374,15 @@ body {
 .upload-progress-bar {
     width: 0%;
     height: 100%;
-    background: var(--primary-color);
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--primary-color));
+    background-size: 200% 100%;
     transition: width 0.1s linear;
+    animation: shimmer 2s linear infinite;
+}
+
+.empty-state {
+    animation: fadeInUp 0.35s ease-out both;
+    color: #888;
+    text-align: center;
+    padding: 2rem 1rem;
 }

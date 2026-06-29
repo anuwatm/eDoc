@@ -1,15 +1,25 @@
 // js/fileSystem.js
 
 class FileSystem {
-    static clipboard = null; // { action: 'copy'|'move', path: '', type: '' }
+    static clipboard = null; // { action: 'copy', sourceType, items: [{ relPath, name }] }
+    static activeContainer = null;
+
+    static escapeHtml(value) {
+        return typeof window.escapeHtml === 'function' ? window.escapeHtml(value) : String(value ?? '');
+    }
+
+    static postToFiles(formData) {
+        if (typeof window.appendCsrf === 'function') window.appendCsrf(formData);
+        return fetch('api/files.php', { method: 'POST', body: formData });
+    }
 
     static async load(container, type, path = '') {
         container.innerHTML = '<div class="loading-spinner">Loading files...</div>';
         container.setAttribute('data-path', path);
         container.setAttribute('data-type', type);
 
-        // Enable Drag & Drop Upload on container
         this.enableDragDrop(container, type, path);
+        this.enableKeyboard(container);
 
         try {
             const response = await fetch(`api/files.php?action=list&type=${type === 'my-doc' ? 'private' : 'public'}&path=${path}`);
@@ -18,7 +28,7 @@ class FileSystem {
             if (result.success) {
                 this.render(container, result.files, type, path);
             } else {
-                container.innerHTML = `<p class="error">Error: ${result.message}</p>`;
+                container.innerHTML = `<p class="error">Error: ${this.escapeHtml(result.message)}</p>`;
             }
         } catch (e) {
             container.innerHTML = `<p class="error">Connection Error</p>`;
@@ -50,15 +60,29 @@ class FileSystem {
             return;
         }
 
-        files.forEach(file => {
+        files.forEach((file, index) => {
             const item = document.createElement('div');
-            item.className = 'file-item';
+            item.className = 'file-item file-item-enter';
+            item.style.animationDelay = `${Math.min(index, 14) * 35}ms`;
             item.setAttribute('data-name', file.name);
             item.setAttribute('data-type', file.type);
             item.setAttribute('data-relpath', file.relPath);
             item.onclick = (e) => this.selectFile(e, item, file, type, container);
             item.ondblclick = () => this.openFile(file, type);
             item.oncontextmenu = (e) => this.showContextMenu(e, file, type, container);
+
+            if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) {
+                item.draggable = true;
+                item.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    const payload = { relPath: file.relPath, name: file.name, type: file.type, docType: type };
+                    e.dataTransfer.setData('application/x-edoc-image', JSON.stringify(payload));
+                    e.dataTransfer.setData('text/plain', file.name);
+                    e.dataTransfer.effectAllowed = 'copy';
+                    item.classList.add('dragging-file');
+                });
+                item.addEventListener('dragend', () => item.classList.remove('dragging-file'));
+            }
 
             let iconClass = 'fa-file';
             let iconColor = '#ccc';
@@ -68,11 +92,16 @@ class FileSystem {
             else if (file.type === 'mp4') { iconClass = 'fa-film'; iconColor = '#FF4500'; }
             else if (file.type === 'csv') { iconClass = 'fa-file-csv'; iconColor = '#32CD32'; }
             else if (file.type === 'pdf') { iconClass = 'fa-file-pdf'; iconColor = '#FF0000'; }
+            else if (['doc', 'docx'].includes(file.type)) { iconClass = 'fa-file-word'; iconColor = '#2B579A'; }
 
-            item.innerHTML = `
-                <i class="fa-solid ${iconClass}" style="color: ${iconColor};"></i>
-                <span class="file-name">${file.name}</span>
-            `;
+            const icon = document.createElement('i');
+            icon.className = `fa-solid ${iconClass}`;
+            icon.style.color = iconColor;
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = file.name;
+            item.appendChild(icon);
+            item.appendChild(nameSpan);
 
             grid.appendChild(item);
         });
@@ -120,7 +149,18 @@ class FileSystem {
         } else if (file.type === 'mp4') {
             WindowManager.open(`Preview: ${file.name}`, 'preview-video', { src: apiUrl });
         } else if (file.type === 'csv') {
-            WindowManager.open(`Pivot: ${file.name}`, 'csv-viewer', { src: apiUrl });
+            WindowManager.open(`CSV: ${file.name}`, 'csv-viewer', {
+                src: apiUrl,
+                name: file.name,
+                relPath: file.relPath,
+                context: contextType === 'my-doc' ? 'Private' : 'Public',
+            });
+        } else if (file.type === 'docx') {
+            WindowManager.open(`Preview: ${file.name}`, 'preview-docx', { src: apiUrl, name: file.name });
+        } else if (file.type === 'pdf') {
+            WindowManager.open(`Preview: ${file.name}`, 'preview-pdf', { src: apiUrl, name: file.name });
+        } else if (file.type === 'doc') {
+            Notify.show('Legacy .doc is not supported. Save as .docx to preview.', 'info');
         } else {
             Notify.show('No preview available for this file type.', 'info');
         }
@@ -147,10 +187,16 @@ class FileSystem {
 
         const options = [];
 
+        if (this.clipboard?.items?.length) {
+            options.push({ label: 'Paste', action: () => this.pasteClipboard(container, type) });
+        }
+
         if (selectedItems.length === 1) {
             options.push({ label: 'Open', action: () => this.openFile(file, type) });
+            options.push({ label: 'Rename', action: () => this.startInlineRename(container, type) });
         }
-        
+
+        options.push({ label: 'Copy', action: () => this.copySelection(container, type) });
         options.push({ label: 'Copy to...', action: () => this.copyFile(selectedPaths, type) });
         options.push({ label: 'Move to...', action: () => this.moveFile(selectedPaths, type) });
         options.push({ label: 'Download as ZIP', action: () => this.downloadZip(selectedPaths, type) });
@@ -183,7 +229,7 @@ class FileSystem {
         if (!Array.isArray(paths)) paths = [paths.relPath]; // Legacy fallback if object passed
         
         let msg = paths.length === 1 ? `Are you sure you want to delete <b>this file</b>?` : `Are you sure you want to delete <b>${paths.length} items</b>?`;
-        if (!await Modal.confirm('Delete', `${msg}<br>This action cannot be undone.`)) return;
+        if (!await Modal.confirm('Delete', `${msg}<br>Items will be moved to the Recycle Bin and can be restored.`)) return;
 
         let hasError = false;
         for (const path of paths) {
@@ -193,7 +239,7 @@ class FileSystem {
             formData.append('context', type === 'my-doc' ? 'private' : 'public');
 
             try {
-                const res = await fetch('api/files.php', { method: 'POST', body: formData });
+                const res = await this.postToFiles(formData);
                 const data = await res.json();
                 if (!data.success) hasError = true;
             } catch (e) {
@@ -219,8 +265,24 @@ class FileSystem {
     }
 
 
+    static normalizeDocType(type) {
+        if (type === 'my-doc' || type === 'private') return 'my-doc';
+        if (type === 'public-doc' || type === 'public') return 'public-doc';
+        return null;
+    }
+
+    static refreshDocWindows(type) {
+        const docType = this.normalizeDocType(type);
+        if (!docType) return false;
+
+        document.querySelectorAll(`.window-content[data-type="${docType}"]`).forEach(container => {
+            this.load(container, docType, container.getAttribute('data-path') || '');
+        });
+        return true;
+    }
+
     static refreshViews(type = null) {
-        const targetType = type ? (type === 'my-doc' ? 'my-doc' : 'public-doc') : null;
+        const targetType = type ? this.normalizeDocType(type) : null;
         document.querySelectorAll('.window-content[data-type]').forEach(container => {
             const currentType = container.getAttribute('data-type');
             if (!targetType || currentType === targetType) {
@@ -238,7 +300,7 @@ class FileSystem {
         formData.append('context', context.toLowerCase());
 
         try {
-            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const res = await this.postToFiles(formData);
             const data = await res.json();
             if (data.success) {
                 Notify.show('Restored successfully', 'success');
@@ -262,7 +324,7 @@ class FileSystem {
         formData.append('context', context.toLowerCase());
 
         try {
-            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const res = await this.postToFiles(formData);
             const data = await res.json();
             if (data.success) {
                 Notify.show('Deleted forever', 'success');
@@ -276,13 +338,14 @@ class FileSystem {
         }
     }
     static async clearTrash() {
-        if (!await Modal.confirm('Clear trash', 'Permanently delete <b>all files</b> in Trash?<br>This cannot be undone.')) return;
+        if (!await Modal.confirm('Clear trash', 'Permanently delete <b>all items</b> in your private Recycle Bin?<br>Public trash items are not affected.')) return;
 
         const formData = new FormData();
         formData.append('action', 'trash_clear');
+        formData.append('context', 'private');
 
         try {
-            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const res = await this.postToFiles(formData);
             const data = await res.json();
             if (data.success) {
                 Notify.show('Trash cleared', 'success');
@@ -326,6 +389,14 @@ class FileSystem {
             form.appendChild(input);
         });
 
+        if (window.csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = window.csrfToken;
+            form.appendChild(csrfInput);
+        }
+
         document.body.appendChild(form);
         form.submit();
         setTimeout(() => form.remove(), 1000);
@@ -348,30 +419,222 @@ class FileSystem {
         });
     }
 
-    static async performFileAction(action, fileObj, srcType, destType, destPath) {
+    static async performFileAction(action, fileObj, srcType, destType, destPath, options = {}) {
+        const { silent = false, skipRefresh = false } = options;
         const formData = new FormData();
         formData.append('action', action);
 
-        // Helper to construct path compatible with api/files.php
         const mkPath = (t, p) => t === 'my-doc' ? p : 'public/' + p;
 
         formData.append('src', mkPath(srcType, fileObj.relPath));
         formData.append('dest', mkPath(destType, (destPath ? destPath + '/' : '') + fileObj.name));
 
         try {
-            const res = await fetch('api/files.php', { method: 'POST', body: formData });
+            const res = await this.postToFiles(formData);
             const data = await res.json();
             if (data.success) {
-                Notify.show(`${action === 'move' ? 'Moved' : 'Copied'} successfully.`, 'success');
-                // Refresh all views
-                document.querySelectorAll('.window-content[data-type]').forEach(container => {
-                    this.load(container, container.getAttribute('data-type'), container.getAttribute('data-path'));
-                });
-                if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
-            } else {
-                Notify.show(`Error: ${data.message}`, 'error');
+                if (!silent) {
+                    Notify.show(`${action === 'move' ? 'Moved' : 'Copied'} successfully.`, 'success');
+                }
+                if (!skipRefresh) {
+                    this.refreshViews();
+                    if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
+                }
+                return true;
             }
-        } catch (e) { console.error(e); Notify.show('Connection error', 'error'); }
+            if (!silent) Notify.show(`Error: ${data.message}`, 'error');
+            return false;
+        } catch (e) {
+            console.error(e);
+            if (!silent) Notify.show('Connection error', 'error');
+            return false;
+        }
+    }
+
+    static isTypingTarget(el) {
+        if (!el) return false;
+        const tag = el.tagName;
+        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    }
+
+    static getFocusedContainer() {
+        const active = document.activeElement;
+        if (active?.classList?.contains('file-manager-focusable')) return active;
+        if (this.activeContainer?.isConnected) return this.activeContainer;
+        return document.querySelector('.window-content.file-manager-focusable[data-type]');
+    }
+
+    static getSelectedItems(container) {
+        return Array.from(container.querySelectorAll('.file-item.selected')).map(item => ({
+            relPath: item.getAttribute('data-relpath'),
+            name: item.getAttribute('data-name')
+        })).filter(item => item.relPath && item.name);
+    }
+
+    static selectAll(container) {
+        container.querySelectorAll('.file-item').forEach(el => el.classList.add('selected'));
+        if (typeof Widgets !== 'undefined') Widgets.updateDetailWidget(null);
+    }
+
+    static navigateUp(container, type) {
+        const currentPath = container.getAttribute('data-path') || '';
+        if (!currentPath) return;
+        const newPath = currentPath.split('/').slice(0, -1).join('/');
+        this.load(container, type, newPath);
+    }
+
+    static copySelection(container, type) {
+        const items = this.getSelectedItems(container);
+        if (!items.length) {
+            Notify.show('Select file(s) to copy', 'info');
+            return;
+        }
+        this.clipboard = { action: 'copy', sourceType: type, items };
+        Notify.show(`Copied ${items.length} item(s)`, 'success');
+    }
+
+    static async pasteClipboard(container, type) {
+        if (!this.clipboard?.items?.length) {
+            Notify.show('Clipboard is empty', 'info');
+            return;
+        }
+
+        const destPath = container.getAttribute('data-path') || '';
+        const { action, sourceType, items } = this.clipboard;
+        let ok = 0;
+        let fail = 0;
+
+        for (const item of items) {
+            const success = await this.performFileAction(action, item, sourceType, type, destPath, {
+                silent: true,
+                skipRefresh: true
+            });
+            if (success) ok++;
+            else fail++;
+        }
+
+        if (ok) Notify.show(`Pasted ${ok} item(s)`, 'success');
+        if (fail) Notify.show(`${fail} item(s) failed to paste`, 'warn');
+
+        this.refreshViews();
+        if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
+    }
+
+    static startInlineRename(container, type) {
+        const selected = container.querySelector('.file-item.selected');
+        if (!selected) {
+            Notify.show('Select one file to rename', 'info');
+            return;
+        }
+
+        const nameEl = selected.querySelector('.file-name');
+        if (!nameEl || selected.querySelector('.file-rename-input')) return;
+
+        const currentName = selected.getAttribute('data-name') || nameEl.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'file-rename-input';
+        input.value = currentName;
+
+        let committed = false;
+        const finish = async (save) => {
+            if (committed) return;
+            committed = true;
+            const newName = input.value.trim();
+            if (input.isConnected) input.replaceWith(nameEl);
+            if (!save || !newName || newName === currentName) return;
+
+            const relPath = selected.getAttribute('data-relpath');
+            const formData = new FormData();
+            formData.append('action', 'rename');
+            formData.append('path', relPath);
+            formData.append('newName', newName);
+            formData.append('context', type === 'my-doc' ? 'private' : 'public');
+
+            try {
+                const res = await this.postToFiles(formData);
+                const data = await res.json();
+                if (data.success) {
+                    Notify.show('Renamed successfully', 'success');
+                    this.refreshViews(type);
+                } else {
+                    Notify.show(`Rename failed: ${data.message}`, 'error');
+                }
+            } catch (e) {
+                Notify.show('Connection error', 'error');
+            }
+        };
+
+        input.onkeydown = (e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finish(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finish(false);
+            }
+        };
+        input.onblur = () => finish(true);
+
+        nameEl.replaceWith(input);
+        input.focus();
+        input.select();
+    }
+
+    static handleKeyboard(e, container) {
+        const type = container.getAttribute('data-type');
+        if (!this.normalizeDocType(type)) return;
+        if (this.isTypingTarget(e.target)) return;
+
+        const mod = e.ctrlKey || e.metaKey;
+        const key = e.key;
+
+        if (mod && key.toLowerCase() === 'a') {
+            e.preventDefault();
+            this.selectAll(container);
+            return;
+        }
+        if (mod && key.toLowerCase() === 'c') {
+            e.preventDefault();
+            this.copySelection(container, type);
+            return;
+        }
+        if (mod && key.toLowerCase() === 'v') {
+            e.preventDefault();
+            this.pasteClipboard(container, type);
+            return;
+        }
+        if (key === 'F2') {
+            e.preventDefault();
+            this.startInlineRename(container, type);
+            return;
+        }
+        if (key === 'Delete' && type === 'my-doc') {
+            const paths = this.getSelectedItems(container).map(item => item.relPath);
+            if (!paths.length) return;
+            e.preventDefault();
+            this.deleteFile(paths, type);
+            return;
+        }
+        if (key === 'Backspace') {
+            e.preventDefault();
+            this.navigateUp(container, type);
+        }
+    }
+
+    static enableKeyboard(container) {
+        if (container._keyboardBound) return;
+        container._keyboardBound = true;
+        container.classList.add('file-manager-focusable');
+        container.setAttribute('tabindex', '0');
+
+        container.addEventListener('mousedown', () => {
+            this.activeContainer = container;
+            container.focus({ preventScroll: true });
+        });
+
+        container.addEventListener('keydown', (e) => this.handleKeyboard(e, container));
     }
 
     static showFileSelector(title, callback) {
@@ -422,7 +685,11 @@ class FileSystem {
                         d.className = 'file-item';
                         d.style.padding = '5px';
                         d.style.cursor = 'pointer';
-                        d.innerHTML = `<i class="fa-solid fa-folder" style="color:#FFD700; margin-right:5px;"></i> ${f.name}`;
+                        const folderIcon = document.createElement('i');
+                        folderIcon.className = 'fa-solid fa-folder';
+                        folderIcon.style.cssText = 'color:#FFD700; margin-right:5px;';
+                        d.appendChild(folderIcon);
+                        d.appendChild(document.createTextNode(` ${f.name}`));
                         d.onclick = () => {
                             currentPath = p ? `${p}/${f.name}` : f.name;
                             pathSpan.textContent = `Location: /${currentPath}`;
@@ -453,41 +720,106 @@ class FileSystem {
 
     static enableDragDrop(container, type, path) {
         let dragCounter = 0;
-        // Visual feedback on the drop zone specifically if it exists, else container
         const dropZone = container.querySelector('.upload-drop-zone') || container;
+        const docType = this.normalizeDocType(type);
+
+        const showDropHint = () => {
+            if (!docType || container.querySelector('.drop-upload-hint')) return;
+            const currentPath = container.getAttribute('data-path') ?? path ?? '';
+            const label = docType === 'my-doc' ? 'My Documents' : 'Public';
+            const folder = currentPath ? `/${currentPath}` : '/';
+            const hint = document.createElement('div');
+            hint.className = 'drop-upload-hint';
+            hint.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i><span>Drop to upload to <strong>${label}${folder}</strong></span>`;
+            container.appendChild(hint);
+        };
+
+        const hideDropHint = () => {
+            container.querySelector('.drop-upload-hint')?.remove();
+        };
 
         container.ondragenter = (e) => {
             e.preventDefault();
+            if (e.dataTransfer.types.includes('application/x-edoc-image')) return;
             dragCounter++;
             dropZone.classList.add('drag-over');
+            showDropHint();
         };
         container.ondragover = (e) => { e.preventDefault(); };
         container.ondragleave = () => {
             dragCounter--;
-            if (dragCounter === 0) dropZone.classList.remove('drag-over');
+            if (dragCounter === 0) {
+                dropZone.classList.remove('drag-over');
+                hideDropHint();
+            }
         };
         container.ondrop = (e) => {
             e.preventDefault();
             dragCounter = 0;
             dropZone.classList.remove('drag-over');
+            hideDropHint();
 
             if (e.dataTransfer.files.length > 0) {
                 const destination = container.querySelector('#upload-destination')?.value || type;
-                this.handleUploadQueue(e.dataTransfer.files, destination, path, container);
+                const currentPath = container.getAttribute('data-path') ?? path ?? '';
+                this.handleUploadQueue(e.dataTransfer.files, destination, currentPath, container);
             }
         };
     }
 
     static handleUploadQueue(fileList, type, path, container) {
         const files = Array.from(fileList);
-        // Look for our specific queue container
-        const embeddedContainer = container.querySelector('.upload-queue-container');
+        const docType = this.normalizeDocType(type) || this.normalizeDocType(container.getAttribute('data-type'));
 
+        if (docType && !container.querySelector('.upload-queue-container')) {
+            this.handleDirectUpload(files, docType, path, container);
+            return;
+        }
+
+        const embeddedContainer = container.querySelector('.upload-queue-container');
         if (embeddedContainer) {
             this.renderEmbeddedQueue(files, embeddedContainer, type, path, container);
         } else {
             this.showUploadModal(files, type, path, container);
         }
+    }
+
+    static handleDirectUpload(files, type, path, container) {
+        const overlay = this.showUploadOverlay(container, files.length, path, type);
+        const progressFill = overlay.querySelector('.direct-upload-progress-bar');
+        const statusEl = overlay.querySelector('.direct-upload-status');
+
+        this.processUpload(files, type, path, container, () => {
+            if (statusEl) statusEl.textContent = 'Upload complete';
+            if (progressFill) progressFill.style.width = '100%';
+            setTimeout(() => overlay.remove(), 600);
+        }, (err) => {
+            if (statusEl) statusEl.textContent = 'Upload failed';
+            Notify.show('Upload failed: ' + err, 'error');
+            setTimeout(() => overlay.remove(), 1500);
+        }, (percent) => {
+            if (progressFill) progressFill.style.width = `${percent}%`;
+            if (statusEl) statusEl.textContent = `Uploading ${files.length} file(s)... ${Math.round(percent)}%`;
+        });
+    }
+
+    static showUploadOverlay(container, fileCount, path, type) {
+        container.querySelector('.direct-upload-overlay')?.remove();
+
+        const label = type === 'my-doc' ? 'My Documents' : 'Public';
+        const folder = path ? `/${path}` : '/';
+        const overlay = document.createElement('div');
+        overlay.className = 'direct-upload-overlay';
+        overlay.innerHTML = `
+            <div class="direct-upload-panel">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <div class="direct-upload-status">Uploading ${fileCount} file(s)...</div>
+                <div class="direct-upload-dest">${label}${folder}</div>
+                <div class="direct-upload-progress"><div class="direct-upload-progress-bar"></div></div>
+            </div>
+        `;
+        container.appendChild(overlay);
+        return overlay;
     }
 
     static renderEmbeddedQueue(files, targetElement, type, path, container) {
@@ -508,14 +840,30 @@ class FileSystem {
                 const item = document.createElement('div');
                 item.className = 'upload-item';
                 item.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-                item.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
-                        <i class="fa-solid fa-file" style="color:#aaa;"></i>
-                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${file.name}</span>
-                        <span style="font-size:0.8em; color:#666;">(${this.formatBytes(file.size)})</span>
-                    </div>
-                    <i class="fa-solid fa-trash upload-remove" style="color:#ff6b6b; cursor:pointer;" data-index="${index}" title="Remove"></i>
-                `;
+
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:8px; overflow:hidden;';
+                const fileIcon = document.createElement('i');
+                fileIcon.className = 'fa-solid fa-file';
+                fileIcon.style.color = '#aaa';
+                const nameSpan = document.createElement('span');
+                nameSpan.style.cssText = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;';
+                nameSpan.textContent = file.name;
+                const sizeSpan = document.createElement('span');
+                sizeSpan.style.cssText = 'font-size:0.8em; color:#666;';
+                sizeSpan.textContent = `(${this.formatBytes(file.size)})`;
+                row.appendChild(fileIcon);
+                row.appendChild(nameSpan);
+                row.appendChild(sizeSpan);
+
+                const removeBtn = document.createElement('i');
+                removeBtn.className = 'fa-solid fa-trash upload-remove';
+                removeBtn.style.cssText = 'color:#ff6b6b; cursor:pointer;';
+                removeBtn.dataset.index = String(index);
+                removeBtn.title = 'Remove';
+
+                item.appendChild(row);
+                item.appendChild(removeBtn);
                 listDiv.appendChild(item);
             });
 
@@ -604,14 +952,28 @@ class FileSystem {
             files.forEach((file, index) => {
                 const item = document.createElement('div');
                 item.className = 'upload-item';
-                item.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
-                        <i class="fa-solid fa-file"></i>
-                        <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${file.name}</span>
-                        <span style="font-size:0.8em; color:#aaa;">(${this.formatBytes(file.size)})</span>
-                    </div>
-                    <i class="fa-solid fa-trash upload-remove" data-index="${index}" title="Remove"></i>
-                `;
+
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:8px; overflow:hidden;';
+                const fileIcon = document.createElement('i');
+                fileIcon.className = 'fa-solid fa-file';
+                const nameSpan = document.createElement('span');
+                nameSpan.style.cssText = 'white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+                nameSpan.textContent = file.name;
+                const sizeSpan = document.createElement('span');
+                sizeSpan.style.cssText = 'font-size:0.8em; color:#aaa;';
+                sizeSpan.textContent = `(${this.formatBytes(file.size)})`;
+                row.appendChild(fileIcon);
+                row.appendChild(nameSpan);
+                row.appendChild(sizeSpan);
+
+                const removeBtn = document.createElement('i');
+                removeBtn.className = 'fa-solid fa-trash upload-remove';
+                removeBtn.dataset.index = String(index);
+                removeBtn.title = 'Remove';
+
+                item.appendChild(row);
+                item.appendChild(removeBtn);
                 listContainer.appendChild(item);
             });
 
@@ -676,6 +1038,7 @@ class FileSystem {
             formData.append('action', 'upload');
             formData.append('type', uploadType);
             formData.append('path', path || '');
+            if (typeof window.appendCsrf === 'function') window.appendCsrf(formData);
 
             // Append files
             if (files instanceof FileList || Array.isArray(files)) {
@@ -714,9 +1077,18 @@ class FileSystem {
                 }
 
                 if (xhr.status >= 200 && xhr.status < 300 && data.success) {
-                    Notify.show('File(s) uploaded successfully', 'success');
-                    if (container) {
-                        this.load(container, type, path || '');
+                    if (data.partial) {
+                        Notify.show(data.message || 'Some files were skipped', 'info');
+                    } else {
+                        Notify.show('File(s) uploaded successfully', 'success');
+                    }
+                    if (!this.refreshDocWindows(type) && container) {
+                        const docType = this.normalizeDocType(container.getAttribute('data-type'));
+                        if (docType) {
+                            this.load(container, docType, container.getAttribute('data-path') || path || '');
+                        } else {
+                            this.load(container, type, path || '');
+                        }
                     }
                     if (typeof Widgets !== 'undefined') Widgets.updatePersonWidget();
                     if (onSuccess) onSuccess();

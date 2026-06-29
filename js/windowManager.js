@@ -9,7 +9,7 @@ class WindowManager {
 
         // Basic Window Template
         const win = document.createElement('div');
-        win.classList.add('virtual-window');
+        win.classList.add('virtual-window', 'window-opening', 'window-active');
         win.id = id;
         win.style.zIndex = ++this.zIndex;
 
@@ -19,9 +19,14 @@ class WindowManager {
         win.style.top = `${top}px`;
         win.style.left = `${left}px`;
 
+        if (type === 'preview-docx' || type === 'preview-pdf' || type === 'csv-viewer') {
+            win.style.width = type === 'csv-viewer' ? '1024px' : '920px';
+            win.style.height = type === 'csv-viewer' ? '760px' : '680px';
+        }
+
         win.innerHTML = `
             <div class="window-header" onmousedown="WindowManager.startDrag(event, '${id}')">
-                <span class="window-title">${title}</span>
+                <span class="window-title">${this.escapeHtml(title)}</span>
                 <div class="window-controls">
                     <span class="win-btn maximize" onclick="WindowManager.maximize('${id}')">⬜</span>
                     <span class="win-btn close" onclick="WindowManager.close('${id}')">✕</span>
@@ -37,9 +42,15 @@ class WindowManager {
         document.getElementById('desktop-container').appendChild(win);
         this.activeWindows[id] = win;
 
+        win.addEventListener('animationend', (e) => {
+            if (e.animationName === 'fadeInScale') win.classList.remove('window-opening');
+        }, { once: true });
+
         // Bring to front on click
         win.addEventListener('mousedown', () => {
             win.style.zIndex = ++this.zIndex;
+            Object.values(this.activeWindows).forEach(w => w.classList.remove('window-active'));
+            win.classList.add('window-active');
         });
 
         // Resize Event
@@ -52,21 +63,28 @@ class WindowManager {
 
     static close(id) {
         const win = document.getElementById(id);
-        if (win) {
-            // Check if this is a File Manager window
-            const query = win.querySelector('.window-content');
-            const type = query ? query.getAttribute('data-type') : null;
+        if (!win || win.classList.contains('window-closing')) return;
 
-            // If closing a file manager, hide the detail widget as context is lost
-            if (type === 'my-doc' || type === 'public-doc') {
-                if (typeof Widgets !== 'undefined') {
-                    Widgets.updateDetailWidget(null); // Hide details
-                }
+        const query = win.querySelector('.window-content');
+        const type = query ? query.getAttribute('data-type') : null;
+
+        if (type === 'my-doc' || type === 'public-doc') {
+            if (typeof Widgets !== 'undefined') {
+                Widgets.updateDetailWidget(null);
             }
+        }
 
+        const finishClose = () => {
             win.remove();
             delete this.activeWindows[id];
-        }
+        };
+
+        win.classList.remove('window-active');
+        win.classList.add('window-closing');
+        win.addEventListener('animationend', (e) => {
+            if (e.animationName === 'fadeOutScale') finishClose();
+        }, { once: true });
+        setTimeout(finishClose, 280);
     }
 
     static startDrag(e, id) {
@@ -130,31 +148,41 @@ class WindowManager {
             FileSystem.load(contentArea, 'public-doc', data.path || '');
         } else if (type === 'preview-img') {
             this.renderImageViewer(contentArea, data);
+        } else if (type === 'preview-docx') {
+            this.renderDocxViewer(contentArea, data);
+        } else if (type === 'preview-pdf') {
+            this.renderPdfViewer(contentArea, data);
         } else if (type === 'preview-video') {
             contentArea.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;"><video src="${data.src}" controls style="max-width:100%; max-height:100%;"></video></div>`;
         } else if (type === 'csv-viewer') {
             contentArea.style.display = 'flex';
             contentArea.style.flexDirection = 'column';
-            contentArea.innerHTML = `
-                <div class="loading-spinner">Loading CSV...</div>
-            `;
+            contentArea.innerHTML = '<div class="loading-spinner">กำลังโหลด CSV...</div>';
 
             fetch(data.src)
-                .then(res => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-                    return res.text();
+                .then(async res => {
+                    const text = await res.text();
+                    const trimmed = text.trim();
+                    if (!res.ok || (res.headers.get('Content-Type') || '').includes('application/json')) {
+                        let message = trimmed || res.statusText || 'โหลด CSV ไม่ได้';
+                        try {
+                            const payload = JSON.parse(trimmed);
+                            message = payload.message || message;
+                        } catch (_) {}
+                        throw new Error(message);
+                    }
+                    return text;
                 })
                 .then(csvText => {
-                    this.renderCSV(contentArea, csvText);
+                    this.renderCSV(contentArea, csvText, data);
                 })
                 .catch(err => {
                     console.error('CSV Load Error:', err);
                     contentArea.innerHTML = `
                         <div style="padding:20px; color:#ff6b6b; text-align:center;">
                             <i class="fa-solid fa-triangle-exclamation" style="font-size:2em; margin-bottom:10px;"></i><br>
-                            Failed to load CSV.<br>
-                            <small>${err.message}</small><br>
-                            <small style="color:#888;">Path: ${data.src}</small>
+                            โหลด CSV ไม่ได้<br>
+                            <small>${this.escapeHtml(err.message)}</small>
                         </div>`;
                 });
         } else if (type === 'upload') {
@@ -198,8 +226,6 @@ class WindowManager {
                         <button class="win-btn" style="margin-top:10px; padding:8px 15px; background:var(--primary-color); border-radius:5px; border:none; color:white;" onclick="uploadSetting('bg')">Update Wallpaper</button>
                     </div>
                 </div>
-                    </div>
-                </div>
              `;
         } else if (type === 'stats-window') {
             contentArea.innerHTML = `
@@ -227,7 +253,7 @@ class WindowManager {
                                 <!-- Left Column: Profile -->
                                 <div style="width: 40%; padding: 20px; border-right: 1px solid rgba(255,255,255,0.1); display:flex; flex-direction:column; align-items:center; text-align:center; background:rgba(0,0,0,0.2);">
                                     <img src="${data.avatar}" style="width:100px; height:100px; border-radius:50%; object-fit:cover; border:3px solid rgba(255,255,255,0.2); margin-bottom:15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                                    <h2 style="margin:0; font-size:1.5rem;">${data.username}</h2>
+                                    <h2 style="margin:0; font-size:1.5rem;">${this.escapeHtml(data.username)}</h2>
                                     <p style="color:#aaa; margin-top:5px; font-size:0.9em; margin-bottom:30px;">${data.role || 'Administrator'}</p>
                                     
                                     <div style="width:100%; text-align:left; background:rgba(255,255,255,0.05); padding:15px; border-radius:10px;">
@@ -330,6 +356,211 @@ class WindowManager {
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
     }
 
+    static escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    static getObjectFitContentRect(img) {
+        const rect = img.getBoundingClientRect();
+        const nw = img.naturalWidth;
+        const nh = img.naturalHeight;
+        if (!nw || !nh) return rect;
+
+        const scale = Math.min(rect.width / nw, rect.height / nh);
+        const contentW = nw * scale;
+        const contentH = nh * scale;
+        const offsetX = (rect.width - contentW) / 2;
+        const offsetY = (rect.height - contentH) / 2;
+
+        return {
+            left: rect.left + offsetX,
+            top: rect.top + offsetY,
+            width: contentW,
+            height: contentH
+        };
+    }
+
+    static renderPdfViewer(container, data) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.overflow = 'hidden';
+        container.innerHTML = `
+            <div class="pdf-toolbar">
+                <span class="pdf-toolbar-title">${this.escapeHtml(data.name || 'Document.pdf')}</span>
+                <div class="image-tool-group pdf-tool-group">
+                    <button class="image-tool-btn pdf-prev" title="Previous page"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span class="pdf-page-info">- / -</span>
+                    <button class="image-tool-btn pdf-next" title="Next page"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="image-tool-group pdf-tool-group">
+                    <button class="image-tool-btn pdf-zoom-out" title="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                    <button class="image-tool-btn pdf-zoom-in" title="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    <button class="image-tool-btn pdf-fit" title="Fit width"><i class="fa-solid fa-expand"></i></button>
+                </div>
+                <button class="image-tool-btn pdf-download" title="Download">
+                    <i class="fa-solid fa-download"></i><span>Download</span>
+                </button>
+            </div>
+            <div class="pdf-stage"><div class="loading-spinner">Loading PDF...</div></div>
+        `;
+
+        const stage = container.querySelector('.pdf-stage');
+        const pageInfo = container.querySelector('.pdf-page-info');
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-canvas';
+
+        const state = { doc: null, page: 1, scale: 1.2, rendering: false, fitWidth: false };
+
+        if (typeof pdfjsLib === 'undefined') {
+            stage.innerHTML = '<div class="docx-error">pdf.js library failed to load.</div>';
+            return;
+        }
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/vendor/pdf.worker.min.js';
+
+        const showError = (message) => {
+            stage.innerHTML = `
+                <div class="docx-error">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <p>Failed to load PDF.</p>
+                    <small>${this.escapeHtml(message)}</small>
+                </div>`;
+        };
+
+        const renderPage = async () => {
+            if (!state.doc || state.rendering) return;
+            state.rendering = true;
+            try {
+                const page = await state.doc.getPage(state.page);
+                let scale = state.scale;
+                if (state.fitWidth) {
+                    const base = page.getViewport({ scale: 1 });
+                    scale = Math.max(0.5, (stage.clientWidth - 32) / base.width);
+                }
+                const viewport = page.getViewport({ scale });
+                const ctx = canvas.getContext('2d');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                pageInfo.textContent = `${state.page} / ${state.doc.numPages}`;
+                if (!canvas.isConnected) {
+                    stage.innerHTML = '';
+                    stage.appendChild(canvas);
+                }
+            } finally {
+                state.rendering = false;
+            }
+        };
+
+        container.querySelector('.pdf-prev').onclick = () => {
+            if (!state.doc || state.page <= 1) return;
+            state.page--;
+            renderPage();
+        };
+        container.querySelector('.pdf-next').onclick = () => {
+            if (!state.doc || state.page >= state.doc.numPages) return;
+            state.page++;
+            renderPage();
+        };
+        container.querySelector('.pdf-zoom-in').onclick = () => {
+            state.fitWidth = false;
+            state.scale = Math.min(state.scale + 0.2, 3);
+            renderPage();
+        };
+        container.querySelector('.pdf-zoom-out').onclick = () => {
+            state.fitWidth = false;
+            state.scale = Math.max(state.scale - 0.2, 0.4);
+            renderPage();
+        };
+        container.querySelector('.pdf-fit').onclick = () => {
+            state.fitWidth = true;
+            renderPage();
+        };
+        container.querySelector('.pdf-download').onclick = () => {
+            const link = document.createElement('a');
+            link.href = data.src;
+            link.download = data.name || 'document.pdf';
+            link.click();
+        };
+
+        fetch(data.src)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+                return res.arrayBuffer();
+            })
+            .then(buffer => pdfjsLib.getDocument({ data: buffer }).promise)
+            .then(doc => {
+                state.doc = doc;
+                state.page = 1;
+                stage.innerHTML = '';
+                stage.appendChild(canvas);
+                return renderPage();
+            })
+            .catch(err => {
+                console.error('PDF preview error:', err);
+                showError(err.message);
+            });
+    }
+
+    static renderDocxViewer(container, data) {
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.overflow = 'hidden';
+        container.innerHTML = `
+            <div class="docx-toolbar">
+                <span class="docx-toolbar-title">${this.escapeHtml(data.name || 'Document')}</span>
+                <button class="image-tool-btn docx-download" title="Download">
+                    <i class="fa-solid fa-download"></i><span>Download</span>
+                </button>
+            </div>
+            <div class="docx-stage"><div class="loading-spinner">Loading document...</div></div>
+        `;
+
+        const stage = container.querySelector('.docx-stage');
+        container.querySelector('.docx-download').onclick = () => {
+            const link = document.createElement('a');
+            link.href = data.src;
+            link.download = data.name || 'document.docx';
+            link.click();
+        };
+
+        if (typeof docx === 'undefined' || typeof docx.renderAsync !== 'function') {
+            stage.innerHTML = '<div class="docx-error">docx-preview library failed to load.</div>';
+            return;
+        }
+
+        fetch(data.src)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+                return res.blob();
+            })
+            .then(blob => {
+                stage.innerHTML = '<div class="docx-wrapper"></div>';
+                const wrapper = stage.querySelector('.docx-wrapper');
+                return docx.renderAsync(blob, wrapper, null, {
+                    className: 'docx-preview-content',
+                    inWrapper: true,
+                    ignoreWidth: false,
+                    ignoreHeight: false,
+                    ignoreFonts: false,
+                    breakPages: true,
+                    ignoreLastRenderedPageBreak: true,
+                    experimental: false,
+                    trimXmlDeclaration: true,
+                    useBase64URL: true,
+                });
+            })
+            .catch(err => {
+                console.error('DOCX preview error:', err);
+                stage.innerHTML = `
+                    <div class="docx-error">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <p>Failed to load document.</p>
+                        <small>${this.escapeHtml(err.message)}</small>
+                    </div>`;
+            });
+    }
+
     static renderImageViewer(container, data) {
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
@@ -352,13 +583,19 @@ class WindowManager {
                 </div>
                 <button class="image-tool-btn img-download" title="Download"><i class="fa-solid fa-download"></i><span>Download</span></button>
             </div>
-            <div class="image-stage">
-                <img class="image-viewer-img" src="${data.src}" alt="" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;">
-            </div>
+            <div class="image-stage"></div>
         `;
 
-        const img = container.querySelector('.image-viewer-img');
         const stage = container.querySelector('.image-stage');
+        const img = document.createElement('img');
+        img.className = 'image-viewer-img';
+        img.alt = data.name || 'Image preview';
+        img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;user-select:none;';
+        img.onerror = () => {
+            stage.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ff6b6b;text-align:center;padding:20px;"><div><i class="fa-solid fa-triangle-exclamation" style="font-size:2em;margin-bottom:10px;"></i><br>Failed to load image.</div></div>';
+        };
+        img.src = data.src;
+        stage.appendChild(img);
         const cropBtn = container.querySelector('.img-crop');
         const applyBtn = container.querySelector('.img-apply');
         const cancelBtn = container.querySelector('.img-cancel');
@@ -433,11 +670,11 @@ class WindowManager {
         applyBtn.onclick = () => {
             if (!cropBox || !img.naturalWidth || !img.naturalHeight) return;
             const box = cropBox.getBoundingClientRect();
-            const imgRect = img.getBoundingClientRect();
-            const x = Math.max(0, (box.left - imgRect.left) / imgRect.width);
-            const y = Math.max(0, (box.top - imgRect.top) / imgRect.height);
-            const w = Math.min(1 - x, box.width / imgRect.width);
-            const h = Math.min(1 - y, box.height / imgRect.height);
+            const contentRect = this.getObjectFitContentRect(img);
+            const x = Math.max(0, (box.left - contentRect.left) / contentRect.width);
+            const y = Math.max(0, (box.top - contentRect.top) / contentRect.height);
+            const w = Math.min(1 - x, box.width / contentRect.width);
+            const h = Math.min(1 - y, box.height / contentRect.height);
             if (w <= 0.01 || h <= 0.01) return;
             const canvas = document.createElement('canvas');
             canvas.width = Math.round(img.naturalWidth * w);
@@ -459,10 +696,18 @@ class WindowManager {
         container.innerHTML = '<div class="loading-spinner">Loading recent files...</div>';
         try {
             const res = await fetch('api/files.php?action=recent');
+            if (!res.ok) {
+                container.innerHTML = `<p class="error">HTTP ${res.status}: Failed to load recent files</p>`;
+                return;
+            }
             const data = await res.json();
+            if (!data.success) {
+                container.innerHTML = `<p class="error">Error: ${this.escapeHtml(data.message || 'Failed to load recent files')}</p>`;
+                return;
+            }
             this.renderFileList(container, data.items || [], 'No recent files');
         } catch (e) {
-            container.innerHTML = '<p class="error">Connection Error</p>';
+            container.innerHTML = `<p class="error">Connection Error: ${this.escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -474,12 +719,21 @@ class WindowManager {
                 fetch('api/files.php?action=trash_list&context=private'),
                 fetch('api/files.php?action=trash_list&context=public')
             ]);
+            if (!privateRes.ok || !publicRes.ok) {
+                container.innerHTML = '<p class="error">Failed to load recycle bin</p>';
+                return;
+            }
             const privateData = await privateRes.json();
             const publicData = await publicRes.json();
+            if (!privateData.success || !publicData.success) {
+                const message = privateData.message || publicData.message || 'Failed to load recycle bin';
+                container.innerHTML = `<p class="error">Error: ${this.escapeHtml(message)}</p>`;
+                return;
+            }
             const items = [...(privateData.items || []), ...(publicData.items || [])];
             this.renderTrashList(container, items);
         } catch (e) {
-            container.innerHTML = '<p class="error">Connection Error</p>';
+            container.innerHTML = `<p class="error">Connection Error: ${this.escapeHtml(e.message)}</p>`;
         }
     }
 
@@ -493,7 +747,26 @@ class WindowManager {
             const row = document.createElement('div');
             row.className = 'file-item';
             row.style.cssText = 'display:flex;align-items:center;gap:12px;justify-content:flex-start;margin-bottom:8px;padding:10px;width:auto;text-align:left;cursor:pointer;';
-            row.innerHTML = `<i class="fa-solid ${this.iconForExtension(item.type)}" style="font-size:1.4rem;color:#ccc;"></i><div style="min-width:0;"><div style="color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div><div style="color:#aaa;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.context} / ${item.path} • ${this.formatSize(item.size || 0)}</div></div>`;
+
+            const icon = document.createElement('i');
+            icon.className = `fa-solid ${this.iconForExtension(item.type)}`;
+            icon.style.cssText = 'font-size:1.4rem;color:#ccc;';
+
+            const textWrap = document.createElement('div');
+            textWrap.style.minWidth = '0';
+
+            const name = document.createElement('div');
+            name.style.cssText = 'color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+            name.textContent = item.name;
+
+            const meta = document.createElement('div');
+            meta.style.cssText = 'color:#aaa;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+            meta.textContent = `${item.context} / ${item.path} • ${this.formatSize(item.size || 0)}`;
+
+            textWrap.appendChild(name);
+            textWrap.appendChild(meta);
+            row.appendChild(icon);
+            row.appendChild(textWrap);
             row.onclick = () => this.openSearchResult(item);
             container.appendChild(row);
         });
@@ -510,8 +783,10 @@ class WindowManager {
         container.style.flexDirection = 'column';
         const list = container.querySelector('.trash-list');
         const clearBtn = container.querySelector('.trash-clear');
-        clearBtn.disabled = !items.length;
-        clearBtn.style.opacity = items.length ? '1' : '.45';
+        const privateCount = items.filter(item => item.context === 'private').length;
+        clearBtn.disabled = !privateCount;
+        clearBtn.style.opacity = privateCount ? '1' : '.45';
+        clearBtn.title = privateCount ? 'Clear your private recycle bin' : 'No private trash items to clear';
         clearBtn.onclick = () => FileSystem.clearTrash();
         if (!items.length) {
             list.innerHTML = '<div class="empty-state">Recycle bin is empty</div>';
@@ -521,9 +796,41 @@ class WindowManager {
         items.forEach(item => {
             const row = document.createElement('div');
             row.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;';
-            row.innerHTML = `<i class="fa-solid ${item.isDir ? 'fa-folder' : this.iconForExtension((item.name.split('.').pop() || '').toLowerCase())}" style="font-size:1.4rem;color:${item.isDir ? '#FFD700' : '#ccc'};"></i><div style="min-width:0;flex:1;"><div style="color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div><div style="color:#aaa;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.context} / ${item.originalPath}</div></div><button class="win-btn trash-restore" style="padding:6px 10px;background:var(--primary-color);border:none;border-radius:5px;color:white;">Restore</button><button class="win-btn trash-delete" style="padding:6px 10px;background:#e74c3c;border:none;border-radius:5px;color:white;">Del</button>`;
-            row.querySelector('.trash-restore').onclick = () => FileSystem.restoreTrashItem(item.id, item.context);
-            row.querySelector('.trash-delete').onclick = () => FileSystem.deleteTrashItem(item.id, item.context, item.name);
+
+            const ext = (item.name.split('.').pop() || '').toLowerCase();
+            const icon = document.createElement('i');
+            icon.className = `fa-solid ${item.isDir ? 'fa-folder' : this.iconForExtension(ext)}`;
+            icon.style.cssText = `font-size:1.4rem;color:${item.isDir ? '#FFD700' : '#ccc'};`;
+
+            const textWrap = document.createElement('div');
+            textWrap.style.cssText = 'min-width:0;flex:1;';
+
+            const name = document.createElement('div');
+            name.style.cssText = 'color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+            name.textContent = item.name;
+
+            const path = document.createElement('div');
+            path.style.cssText = 'color:#aaa;font-size:.8em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+            path.textContent = `${item.context} / ${item.originalPath}`;
+
+            const restoreBtn = document.createElement('button');
+            restoreBtn.className = 'win-btn trash-restore';
+            restoreBtn.style.cssText = 'padding:6px 10px;background:var(--primary-color);border:none;border-radius:5px;color:white;';
+            restoreBtn.textContent = 'Restore';
+            restoreBtn.onclick = () => FileSystem.restoreTrashItem(item.id, item.context);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'win-btn trash-delete';
+            deleteBtn.style.cssText = 'padding:6px 10px;background:#e74c3c;border:none;border-radius:5px;color:white;';
+            deleteBtn.textContent = 'Del';
+            deleteBtn.onclick = () => FileSystem.deleteTrashItem(item.id, item.context, item.name);
+
+            textWrap.appendChild(name);
+            textWrap.appendChild(path);
+            row.appendChild(icon);
+            row.appendChild(textWrap);
+            row.appendChild(restoreBtn);
+            row.appendChild(deleteBtn);
             list.appendChild(row);
         });
     }
@@ -709,125 +1016,12 @@ class WindowManager {
         win.classList.toggle('maximized');
     }
 
-    static renderCSV(container, text) {
-        // Use PapaParse if available for robust parsing
-        const parseCSV = (csvText) => {
-            if (typeof Papa !== 'undefined') {
-                return Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true,
-                    dynamicTyping: true
-                }).data;
-            } else {
-                // Fallback (Not recommended, but kept for safety)
-                console.warn('PapaParse not found, using simple fallback');
-                const rows = csvText.trim().split('\n').map(row => row.split(','));
-                const headers = rows[0];
-                return rows.slice(1).map(row => {
-                    let obj = {};
-                    headers.forEach((h, i) => obj[h] = row[i]);
-                    return obj;
-                });
-            }
-        };
-
-        const data = parseCSV(text);
-
-        if (!data || data.length === 0) {
-            container.innerHTML = '<div class="empty-state">Empty CSV</div>';
+    static renderCSV(container, text, meta = {}) {
+        if (typeof CsvPivot !== 'undefined') {
+            CsvPivot.render(container, text, meta);
             return;
         }
-
-        // Determine columns from first row
-        const sample = data[0];
-        const colNames = Object.keys(sample);
-
-        const columns = colNames.map(key => ({
-            title: key,
-            field: key,
-            headerFilter: "list", // Dropdown filter
-            headerFilterParams: { valuesLookup: true, clearable: true } // Auto-populate values
-        }));
-
-        // Create Toolbar
-        const toolbar = document.createElement('div');
-        toolbar.style.padding = '10px';
-        toolbar.style.background = 'rgba(0,0,0,0.2)';
-        toolbar.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-        toolbar.style.display = 'flex';
-        toolbar.style.gap = '10px';
-        toolbar.style.alignItems = 'center';
-
-        // Group By Selector
-        const groupLabel = document.createElement('span');
-        groupLabel.innerText = 'Group By:';
-        groupLabel.style.fontSize = '0.9em';
-
-        const groupSelect = document.createElement('select');
-        groupSelect.style.padding = '5px';
-        groupSelect.style.borderRadius = '4px';
-        groupSelect.style.background = '#000000'; // Black background
-        groupSelect.style.color = 'white';
-        groupSelect.style.border = '1px solid rgba(255,255,255,0.2)';
-
-        groupSelect.innerHTML = '<option value="">None</option>';
-        colNames.forEach(col => {
-            groupSelect.innerHTML += `<option value="${col}">${col}</option>`;
-        });
-
-        // Print Button
-        const printBtn = document.createElement('button');
-        printBtn.innerHTML = '<i class="fa-solid fa-print"></i> Print';
-        printBtn.className = 'win-btn';
-        printBtn.style.padding = '5px 10px';
-        printBtn.style.background = 'var(--primary-color)';
-        printBtn.style.color = 'white';
-        printBtn.style.border = 'none';
-        printBtn.style.borderRadius = '4px';
-        printBtn.style.marginLeft = 'auto'; // Align to right
-
-        toolbar.appendChild(groupLabel);
-        toolbar.appendChild(groupSelect);
-        toolbar.appendChild(printBtn);
-
-        // Grid Container
-        const gridDiv = document.createElement('div');
-        gridDiv.style.flex = '1';
-        gridDiv.style.overflow = 'hidden';
-
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.innerHTML = '';
-        container.appendChild(toolbar);
-        container.appendChild(gridDiv);
-
-        // Render Tabulator
-        const table = new Tabulator(gridDiv, {
-            data: data,
-            layout: "fitDataFill",
-            columns: columns,
-            height: "100%",
-            pagination: true,
-            paginationSize: 20,
-            movableColumns: true,
-            printAsHtml: true,
-            printHeader: "<h1>CSV Data</h1>",
-            printStyle: true,
-        });
-
-        // Event Listeners
-        groupSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (val) {
-                table.setGroupBy(val);
-            } else {
-                table.setGroupBy("");
-            }
-        });
-
-        printBtn.addEventListener('click', () => {
-            table.print(false, true);
-        });
+        container.innerHTML = '<div class="empty-state">CsvPivot module not loaded</div>';
     }
 }
 

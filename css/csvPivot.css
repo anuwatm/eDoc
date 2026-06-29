@@ -1,0 +1,414 @@
+/* CSV Viewer & Pivot Table */
+
+.window-content.csv-view-root {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.csv-view-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.csv-view-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.csv-view-tab {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ccc;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.csv-view-tab:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.csv-view-tab.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    font-weight: 600;
+}
+
+.csv-view-meta {
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.csv-view-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.csv-raw-toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.csv-raw-toolbar select,
+.csv-field-agg {
+    padding: 4px 6px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 0.78rem;
+}
+
+.csv-raw-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Pivot drag-drop layout */
+
+.csv-pivot-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.csv-pivot-table-area {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.csv-pivot-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.csv-pivot-toolbar label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #ccc;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.csv-pivot-summary {
+    margin-left: auto;
+    color: #888;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+}
+
+.csv-pivot-config-panel {
+    display: flex;
+    flex-shrink: 0;
+    max-height: 168px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+}
+
+.csv-pivot-config-panel.collapsed {
+    display: none;
+}
+
+.csv-pivot-palette {
+    width: 160px;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.csv-pivot-palette-title {
+    padding: 6px 10px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.csv-pivot-zones {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 8px 10px;
+}
+
+.csv-pivot-zone {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.csv-pivot-zone label {
+    display: block;
+    color: #aaa;
+    font-size: 0.72rem;
+    margin-bottom: 4px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.csv-pivot-zone-list {
+    min-height: 34px;
+    max-height: 120px;
+    overflow: auto;
+    padding: 5px;
+    flex: 1;
+    border-radius: 8px;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.csv-pivot-zone-list:empty::before,
+.csv-pivot-zone-list.csv-pivot-empty::before {
+    content: 'ลากฟิลด์มาวางที่นี่';
+    color: #666;
+    font-size: 0.78rem;
+    font-style: italic;
+    padding: 4px 2px;
+}
+
+.csv-pivot-palette .csv-pivot-zone-list {
+    flex: 1;
+    margin: 6px;
+    max-height: none;
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.08);
+    align-content: flex-start;
+}
+
+.csv-pivot-zone-list.sortable-drag-over {
+    border-color: rgba(37, 117, 252, 0.55);
+    background: rgba(37, 117, 252, 0.1);
+}
+
+.csv-field-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: rgba(37, 117, 252, 0.22);
+    border: 1px solid rgba(37, 117, 252, 0.4);
+    color: #e8f1ff;
+    font-size: 0.82rem;
+    cursor: grab;
+    user-select: none;
+    max-width: 100%;
+}
+
+.csv-field-chip.csv-field-special {
+    background: rgba(46, 204, 113, 0.18);
+    border-color: rgba(46, 204, 113, 0.4);
+    color: #d8ffe8;
+}
+
+.csv-field-chip:active {
+    cursor: grabbing;
+}
+
+.csv-field-grip {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.7rem;
+}
+
+.csv-field-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    font-size: 0.68rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.csv-field-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.csv-field-ghost {
+    opacity: 0.35;
+}
+
+.csv-field-chosen {
+    box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.5);
+}
+
+.csv-field-drag {
+    opacity: 0.9;
+}
+
+.csv-pivot-btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+
+.csv-pivot-btn-ghost {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.csv-pivot-result {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 10px;
+}
+
+.csv-pivot-table {
+    table-layout: fixed;
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+    font-size: 0.86rem;
+}
+
+.csv-pivot-table th,
+.csv-pivot-table td {
+    padding: 8px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.csv-col-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    user-select: none;
+    z-index: 3;
+}
+
+.csv-col-resizer:hover,
+body.csv-pivot-resizing .csv-col-resizer {
+    background: rgba(37, 117, 252, 0.5);
+}
+
+body.csv-pivot-resizing {
+    cursor: col-resize !important;
+    user-select: none;
+}
+
+.csv-pivot-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(15, 12, 41, 0.98);
+    color: #aab;
+    font-weight: 600;
+    text-align: right;
+}
+
+.csv-pivot-table thead th.corner,
+.csv-pivot-table tbody th {
+    text-align: left;
+}
+
+.csv-pivot-table tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: rgba(20, 16, 48, 0.98);
+    font-weight: 500;
+    color: #ddd;
+}
+
+.csv-pivot-table td {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.csv-pivot-table tr.total-row th,
+.csv-pivot-table tr.total-row td,
+.csv-pivot-table tfoot th,
+.csv-pivot-table tfoot td {
+    background: rgba(0, 0, 0, 0.35);
+    color: #7dffb0;
+    font-weight: 700;
+    border-top: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.csv-pivot-table td.empty-cell {
+    color: #555;
+}
+
+.csv-pivot-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px 20px;
+}
+
+@media print {
+    .csv-view-tabs,
+    .csv-pivot-config-panel,
+    .csv-pivot-toolbar,
+    .csv-raw-toolbar {
+        display: none !important;
+    }
+
+    .csv-pivot-result,
+    .csv-view-body,
+    .csv-pivot-layout {
+        overflow: visible !important;
+    }
+}

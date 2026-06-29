@@ -2,6 +2,11 @@
 // api/settings.php
 session_start();
 header('Content-Type: application/json');
+require_once 'csrf.php';
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    requireCsrfForPost();
+}
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);

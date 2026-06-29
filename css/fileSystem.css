@@ -14,23 +14,34 @@
     padding: 10px;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     text-align: center;
+}
+
+.file-item.file-item-enter {
+    animation: fadeInUp 0.35s ease-out both;
 }
 
 .file-item:hover {
     background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px);
 }
 
 .file-item.selected {
     background: rgba(37, 117, 252, 0.3);
     border: 1px solid var(--secondary-color);
+    box-shadow: 0 0 14px rgba(37, 117, 252, 0.35);
 }
 
 .file-item i {
     font-size: 2.5rem;
     margin-bottom: 8px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    transition: transform 0.25s ease;
+}
+
+.file-item:hover i {
+    transform: scale(1.08);
 }
 
 .file-name {
@@ -40,10 +51,130 @@
     color: #e0e0e0;
 }
 
+.file-rename-input {
+    width: 100%;
+    max-width: 96px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--secondary-color);
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 0.8rem;
+    text-align: center;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 117, 252, 0.25);
+}
+
+.file-manager-focusable:focus {
+    outline: none;
+}
+
+.file-manager-focusable:focus-visible {
+    box-shadow: inset 0 0 0 2px rgba(37, 117, 252, 0.35);
+    border-radius: 8px;
+}
+
 /* Drag & Drop */
+.file-item.dragging-file {
+    opacity: 0.45;
+    transform: scale(0.96);
+}
+
 .drag-over {
     background: rgba(37, 117, 252, 0.2);
     border: 2px dashed var(--secondary-color);
+    animation: pulseRing 1.4s ease-in-out infinite;
+}
+
+.drop-upload-hint {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    background: rgba(37, 117, 252, 0.12);
+    border: 2px dashed var(--secondary-color);
+    border-radius: 8px;
+    animation: fadeInScale 0.25s ease-out both;
+}
+
+.drop-upload-hint span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    background: rgba(15, 12, 41, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.drop-upload-hint i {
+    font-size: 1.4rem;
+    color: var(--secondary-color);
+}
+
+.direct-upload-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    animation: fadeInScale 0.22s ease-out both;
+}
+
+.direct-upload-panel {
+    width: min(320px, 90%);
+    padding: 22px;
+    text-align: center;
+    background: rgba(15, 12, 41, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    color: #fff;
+    animation: popIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.direct-upload-panel > i {
+    font-size: 2rem;
+    color: var(--secondary-color);
+    margin-bottom: 10px;
+}
+
+.direct-upload-status {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.direct-upload-dest {
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 14px;
+    word-break: break-all;
+}
+
+.direct-upload-progress {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.direct-upload-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--primary-color));
+    background-size: 200% 100%;
+    transition: width 0.2s ease;
+    animation: shimmer 2s linear infinite;
 }
 
 /* Context Menu */
@@ -57,6 +188,8 @@
     z-index: 10000;
     min-width: 150px;
     backdrop-filter: blur(10px);
+    animation: popIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-origin: top left;
 }
 
 .menu-item {
@@ -64,11 +197,12 @@
     cursor: pointer;
     font-size: 0.9rem;
     color: #fff;
-    transition: background 0.2s;
+    transition: background 0.2s ease, padding-left 0.2s ease;
 }
 
 .menu-item:hover {
     background: var(--secondary-color);
+    padding-left: 18px;
 }
 
 /* Upload Modal */
@@ -88,6 +222,7 @@
     color: #fff;
     display: flex;
     flex-direction: column;
+    animation: popIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .upload-modal h3 {

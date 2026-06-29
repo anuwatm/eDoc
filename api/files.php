@@ -25,6 +25,8 @@ $previewMime = [
     'csv' => 'text/csv',
     'json' => 'application/json',
     'txt' => 'text/plain',
+    'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'pdf' => 'application/pdf',
 ];
 
 foreach ([$publicBase, $privateBase] as $dir) {
@@ -33,7 +35,13 @@ foreach ([$publicBase, $privateBase] as $dir) {
     }
 }
 
+require_once 'csrf.php';
+
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    requireCsrfForPost();
+}
 
 function jsonExit($payload, $code = 200)
 {
@@ -143,7 +151,11 @@ function dirSize($dir)
     $size = 0;
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
     foreach ($iterator as $item) {
-        if ($item->isFile() && $item->getFilename() !== '.stats_cache.json') {
+        $pathname = str_replace('\\', '/', $item->getPathname());
+        if (str_contains($pathname, '/.trash/') || $item->getFilename() === '.stats_cache.json') {
+            continue;
+        }
+        if ($item->isFile()) {
             $size += $item->getSize();
         }
     }
@@ -332,10 +344,21 @@ if ($action === 'upload') {
         finfo_close($finfo);
     }
 
+    $attempted = count($files['name']);
+    if (empty($uploaded)) {
+        jsonExit(['success' => false, 'message' => 'No files were uploaded', 'uploaded' => []], 400);
+    }
+
     if (!empty($uploaded)) {
         invalidateStatsCache($baseDir);
     }
-    jsonExit(['success' => true, 'uploaded' => $uploaded]);
+
+    $payload = ['success' => true, 'uploaded' => $uploaded];
+    if (count($uploaded) < $attempted) {
+        $payload['partial'] = true;
+        $payload['message'] = count($uploaded) . ' of ' . $attempted . ' file(s) uploaded; some were skipped';
+    }
+    jsonExit($payload);
 }
 
 if ($action === 'delete') {
@@ -387,9 +410,15 @@ if ($action === 'trash_restore') {
         if (($item['id'] ?? '') !== $id) {
             continue;
         }
-        $trashPath = trashBase($base) . '/' . $item['trashName'];
+        $trashDir = trashBase($base);
+        $trashReal = realpath($trashDir);
+        $trashPath = $trashDir . '/' . basename($item['trashName']);
+        $targetReal = file_exists($trashPath) ? realpath($trashPath) : false;
+        if (!$targetReal || ($trashReal && !isWithinBase($targetReal, $trashReal))) {
+            jsonExit(['success' => false, 'message' => 'Invalid trash path'], 400);
+        }
         $restorePath = uniquePath(safePath($base, $item['originalPath'], true));
-        if (!file_exists($trashPath) || !rename($trashPath, $restorePath)) {
+        if (!rename($targetReal, $restorePath)) {
             jsonExit(['success' => false, 'message' => 'Restore failed'], 500);
         }
         unset($meta[$idx]);
@@ -402,34 +431,36 @@ if ($action === 'trash_restore') {
 }
 
 if ($action === 'trash_clear') {
-    $contexts = ['private' => $privateBase, 'public' => $publicBase];
-    $deleted = 0;
-
-    foreach ($contexts as $context => $base) {
-        $trashDir = trashBase($base);
-        $trashReal = realpath($trashDir);
-        $meta = loadTrashMeta($base);
-
-        $remaining = [];
-        foreach ($meta as $item) {
-            $trashPath = $trashDir . '/' . basename($item['trashName']);
-            $targetReal = file_exists($trashPath) ? realpath($trashPath) : false;
-            if (!$targetReal) {
-                $deleted++;
-                continue;
-            }
-            if ($trashReal && isWithinBase($targetReal, $trashReal) && deletePath($targetReal)) {
-                $deleted++;
-                continue;
-            }
-            $remaining[] = $item;
-        }
-
-        saveTrashMeta($base, $remaining);
-        invalidateStatsCache($base);
+    $context = $_POST['context'] ?? 'private';
+    if ($context !== 'private') {
+        jsonExit(['success' => false, 'message' => 'Only your private recycle bin can be cleared'], 403);
     }
 
-    writeLog('CLEAR_TRASH', "Cleared recycle bin: $deleted item(s)");
+    $base = $privateBase;
+    $deleted = 0;
+    $trashDir = trashBase($base);
+    $trashReal = realpath($trashDir);
+    $meta = loadTrashMeta($base);
+
+    $remaining = [];
+    foreach ($meta as $item) {
+        $trashPath = $trashDir . '/' . basename($item['trashName']);
+        $targetReal = file_exists($trashPath) ? realpath($trashPath) : false;
+        if (!$targetReal) {
+            $deleted++;
+            continue;
+        }
+        if ($trashReal && isWithinBase($targetReal, $trashReal) && deletePath($targetReal)) {
+            $deleted++;
+            continue;
+        }
+        $remaining[] = $item;
+    }
+
+    saveTrashMeta($base, $remaining);
+    invalidateStatsCache($base);
+
+    writeLog('CLEAR_TRASH', "Cleared private recycle bin: $deleted item(s)");
     jsonExit(['success' => true, 'deleted' => $deleted]);
 }
 
@@ -460,6 +491,45 @@ if ($action === 'trash_delete') {
         jsonExit(['success' => true]);
     }
     jsonExit(['success' => false, 'message' => 'Trash item not found'], 404);
+}
+
+if ($action === 'rename') {
+    $context = $_POST['context'] ?? 'private';
+    $path = cleanRelPath($_POST['path'] ?? '');
+    $newNameRaw = trim($_POST['newName'] ?? '');
+    if ($path === '' || $newNameRaw === '' || preg_match('/[\/\\\\]/', $newNameRaw)) {
+        jsonExit(['success' => false, 'message' => 'Invalid name'], 400);
+    }
+    $newName = basename(str_replace('\\', '/', $newNameRaw));
+    if ($newName === '' || $newName === '.' || $newName === '..') {
+        jsonExit(['success' => false, 'message' => 'Invalid name'], 400);
+    }
+
+    global $blockedExtensions;
+    $newExt = strtolower(pathinfo($newName, PATHINFO_EXTENSION));
+    if ($newExt !== '' && in_array($newExt, $blockedExtensions, true)) {
+        jsonExit(['success' => false, 'message' => 'File extension not allowed'], 400);
+    }
+
+    $base = baseForContext($context, $publicBase, $privateBase);
+    $fullPath = safePath($base, $path);
+    $parentDir = dirname($fullPath);
+    $destPath = $parentDir . DIRECTORY_SEPARATOR . $newName;
+
+    if (file_exists($destPath) && realpath($destPath) !== realpath($fullPath)) {
+        jsonExit(['success' => false, 'message' => 'Name already exists'], 409);
+    }
+
+    if (!rename($fullPath, $destPath)) {
+        jsonExit(['success' => false, 'message' => 'Rename failed'], 500);
+    }
+
+    $parentRel = cleanRelPath(dirname(str_replace('\\', '/', $path)));
+    $newRelPath = ($parentRel === '' || $parentRel === '.') ? $newName : $parentRel . '/' . $newName;
+
+    writeLog('RENAME', "Renamed file: $path -> $newRelPath");
+    invalidateStatsCache($base);
+    jsonExit(['success' => true, 'name' => $newName, 'relPath' => $newRelPath]);
 }
 
 if ($action === 'move' || $action === 'copy') {
@@ -548,7 +618,12 @@ if ($action === 'read_content') {
 
     $ext = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
     global $previewMime;
-    $mime = $previewMime[$ext] ?? 'application/octet-stream';
+    if (!isset($previewMime[$ext])) {
+        http_response_code(403);
+        echo 'File type not allowed for preview';
+        exit;
+    }
+    $mime = $previewMime[$ext];
     writeLog('READ', "Read file content: $path");
     header("Content-Type: $mime");
     header('Content-Length: ' . filesize($targetFile));

@@ -111,6 +111,7 @@ window.uploadSetting = async (type) => {
     const formData = new FormData();
     formData.append('file', input.files[0]);
     formData.append('type', type);
+    if (typeof window.appendCsrf === 'function') window.appendCsrf(formData);
 
     try {
         const res = await fetch('api/settings.php', { method: 'POST', body: formData });

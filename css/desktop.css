@@ -41,7 +41,11 @@
 
 .desktop-icon:hover {
     background: rgba(255, 255, 255, 0.1);
-    transform: scale(1.05);
+    animation: iconBob 0.55s ease-in-out infinite;
+}
+
+.desktop-icon:active {
+    transform: scale(0.96);
 }
 
 .desktop-icon i {
@@ -343,6 +347,98 @@
     #desktop-icons {
         max-width: calc(100vw - 40px);
     }
+}
+
+/* Picture Frame Widget */
+.widget-picture-frame {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.widget-picture-frame .frame-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+    z-index: 2;
+}
+
+.widget-picture-frame:hover .frame-close,
+.widget-picture-frame:focus-within .frame-close {
+    opacity: 1;
+}
+
+.widget-picture-frame .frame-close:hover {
+    background: rgba(231, 76, 60, 0.85);
+}
+
+.widget-picture-frame .frame-inner {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.35);
+}
+
+.widget-picture-frame .frame-inner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.widget-picture-frame .frame-broken {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 12px;
+}
+
+.widget-picture-frame .frame-broken i {
+    font-size: 2rem;
+    opacity: 0.7;
+}
+
+.widget-picture-frame.frame-broken .frame-inner {
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+.widget-picture-frame .frame-caption {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    padding: 0 4px;
+}
+
+#desktop-container.image-drop-target,
+#widget-area.image-drop-target {
+    outline: 2px dashed rgba(0, 191, 255, 0.75);
+    outline-offset: -4px;
+    background: rgba(0, 191, 255, 0.06);
 }
 
 @media (max-height: 760px), (max-width: 760px) {

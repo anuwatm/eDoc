@@ -12,8 +12,24 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: top 0.3s, left 0.3s;
-    /* Removed width/height transition for smooth resizing */
+    transition: top 0.3s ease, left 0.3s ease, width 0.25s ease, height 0.25s ease, border-radius 0.25s ease, box-shadow 0.25s ease;
+    transform-origin: center center;
+    will-change: transform, opacity;
+}
+
+.virtual-window.window-opening {
+    animation: fadeInScale 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.virtual-window.window-closing {
+    animation: fadeOutScale 0.22s ease-in both;
+    pointer-events: none;
+}
+
+.virtual-window:focus-within,
+.virtual-window.window-active {
+    box-shadow: 0 16px 48px rgba(37, 117, 252, 0.22), 0 10px 40px rgba(0, 0, 0, 0.5);
+    border-color: rgba(37, 117, 252, 0.35);
 }
 
 .resize-handle {
@@ -159,6 +175,123 @@
 
 .img-download {
     margin-left: auto;
+}
+
+.docx-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.docx-toolbar-title {
+    flex: 1;
+    min-width: 0;
+    color: #e8e8f4;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.docx-toolbar .docx-download {
+    margin-left: auto;
+}
+
+.docx-stage {
+    flex: 1;
+    overflow: auto;
+    background: #525659;
+    padding: 20px 16px;
+}
+
+.docx-wrapper {
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.docx-wrapper .docx-wrapper {
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.docx-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 200px;
+    color: #ff8a8a;
+    text-align: center;
+    padding: 24px;
+}
+
+.docx-error i {
+    font-size: 2rem;
+}
+
+.docx-error small {
+    color: #aaa;
+}
+
+.pdf-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.pdf-toolbar-title {
+    flex: 1;
+    min-width: 120px;
+    color: #e8e8f4;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pdf-tool-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pdf-page-info {
+    min-width: 64px;
+    text-align: center;
+    color: #ccc;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.pdf-toolbar .pdf-download {
+    margin-left: auto;
+}
+
+.pdf-stage {
+    flex: 1;
+    overflow: auto;
+    background: #525659;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.pdf-canvas {
+    display: block;
+    max-width: 100%;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    background: #fff;
 }
 
 .image-stage {

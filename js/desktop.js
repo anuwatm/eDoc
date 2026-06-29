@@ -73,7 +73,7 @@ class Desktop {
             Widgets.init();
         }
 
-
+        requestAnimationFrame(() => this.container.classList.add('desktop-ready'));
     }
 
     static openSearch() {

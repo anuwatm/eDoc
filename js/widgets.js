@@ -3,6 +3,11 @@
 // js/widgets.js
 
 class Widgets {
+    static FRAME_STORAGE_KEY = 'edoc-picture-frames';
+    static IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    static VALID_DOC_TYPES = ['my-doc', 'public-doc'];
+    static _clockInterval = null;
+
     static init() {
         this.renderWidgets();
     }
@@ -66,15 +71,21 @@ class Widgets {
         this.startClock();
         this.updatePersonWidget();
         this.enableDragAndDrop();
+        this.enableImageDrop();
+        this.loadPictureFrames();
     }
 
     static updateDetailWidget(file, type) {
         const widget = document.getElementById('widget-detail');
         if (!file) {
             widget.style.display = 'none';
+            widget.classList.remove('widget-pop-in');
             return;
         }
         widget.style.display = 'flex';
+        widget.classList.remove('widget-pop-in');
+        void widget.offsetWidth;
+        widget.classList.add('widget-pop-in');
 
         // Update Text Info
         document.getElementById('detail-filename').innerText = file.name;
@@ -104,15 +115,23 @@ class Widgets {
         const previewContainer = document.getElementById('detail-preview');
         previewContainer.innerHTML = ''; // Clear
 
-        const realBasePath = type === 'my-doc' ? `private/${window.currentUser}` : 'public';
-        const previewUrl = `eDoc/${realBasePath}/${file.relPath}`;
+        const previewType = type === 'my-doc' ? 'private' : 'public';
+        const previewUrl = `api/files.php?action=read_content&type=${previewType}&path=${encodeURIComponent(file.relPath)}`;
 
         if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) {
-            previewContainer.innerHTML = `<img src="${previewUrl}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">`;
+            const img = document.createElement('img');
+            img.src = previewUrl;
+            img.style.cssText = 'width:100%; height:100%; object-fit:contain; border-radius:10px;';
+            img.alt = file.name;
+            previewContainer.appendChild(img);
         } else if (file.type === 'mp4') {
-            previewContainer.innerHTML = `
-                <video src="${previewUrl}" style="width:100%; height:100%; object-fit:contain; border-radius:10px;" muted loop autoplay></video>
-             `;
+            const video = document.createElement('video');
+            video.src = previewUrl;
+            video.style.cssText = 'width:100%; height:100%; object-fit:contain; border-radius:10px;';
+            video.muted = true;
+            video.loop = true;
+            video.autoplay = true;
+            previewContainer.appendChild(video);
         } else {
             // Icons based on type
             let iconClass = 'fa-file-lines';
@@ -170,6 +189,11 @@ class Widgets {
     }
 
     static startClock() {
+        if (this._clockInterval) {
+            clearInterval(this._clockInterval);
+            this._clockInterval = null;
+        }
+
         const update = () => {
             const now = new Date();
             const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -182,32 +206,201 @@ class Widgets {
             if (dateEl) dateEl.textContent = dateStr;
         };
         update();
-        setInterval(update, 1000);
+        this._clockInterval = setInterval(update, 1000);
     }
 
     static enableDragAndDrop() {
         const container = document.getElementById('widget-area');
-        const widgets = container.querySelectorAll('.widget-card');
+        if (!container || container.dataset.widgetDragBound) return;
+        container.dataset.widgetDragBound = '1';
 
-        widgets.forEach(widget => {
-            widget.addEventListener('dragstart', () => {
-                widget.classList.add('dragging');
-            });
-
-            widget.addEventListener('dragend', () => {
-                widget.classList.remove('dragging');
-            });
-        });
+        container.querySelectorAll('.widget-card').forEach(widget => this.bindWidgetDrag(widget));
 
         container.addEventListener('dragover', e => {
-            e.preventDefault(); // Allow dropping
+            if (this.isEdocImageDrag(e)) return;
+            e.preventDefault();
             const afterElement = this.getDragAfterElement(container, e.clientY);
-            const draggable = document.querySelector('.dragging');
+            const draggable = document.querySelector('.widget-card.dragging');
+            if (!draggable) return;
             if (afterElement == null) {
                 container.appendChild(draggable);
             } else {
                 container.insertBefore(draggable, afterElement);
             }
+        });
+    }
+
+    static bindWidgetDrag(widget) {
+        if (!widget || widget.dataset.dragBound) return;
+        widget.dataset.dragBound = '1';
+        widget.addEventListener('dragstart', () => widget.classList.add('dragging'));
+        widget.addEventListener('dragend', () => widget.classList.remove('dragging'));
+    }
+
+    static isEdocImageDrag(e) {
+        return Array.from(e.dataTransfer?.types || []).includes('application/x-edoc-image');
+    }
+
+    static buildPreviewUrl(relPath, docType) {
+        const previewType = docType === 'my-doc' ? 'private' : 'public';
+        return `api/files.php?action=read_content&type=${previewType}&path=${encodeURIComponent(relPath)}`;
+    }
+
+    static getPictureFrames() {
+        try {
+            const raw = localStorage.getItem(this.FRAME_STORAGE_KEY);
+            const frames = raw ? JSON.parse(raw) : [];
+            return Array.isArray(frames) ? frames : [];
+        } catch {
+            return [];
+        }
+    }
+
+    static savePictureFrames() {
+        const frames = Array.from(document.querySelectorAll('.widget-picture-frame')).map(el => ({
+            id: el.dataset.frameId,
+            relPath: el.dataset.relPath,
+            name: el.dataset.name,
+            type: el.dataset.fileType,
+            docType: el.dataset.docType
+        }));
+        localStorage.setItem(this.FRAME_STORAGE_KEY, JSON.stringify(frames));
+    }
+
+    static normalizeFrameData(fileData) {
+        if (!fileData?.relPath || !fileData?.docType) return null;
+        if (!this.VALID_DOC_TYPES.includes(fileData.docType)) return null;
+
+        const type = String(fileData.type || '').toLowerCase();
+        if (!this.IMAGE_TYPES.includes(type)) return null;
+
+        const relPath = String(fileData.relPath).replace(/\\/g, '/');
+        if (relPath.includes('..') || relPath.startsWith('/')) return null;
+
+        return {
+            id: fileData.id,
+            relPath,
+            name: String(fileData.name || ''),
+            type,
+            docType: fileData.docType
+        };
+    }
+
+    static loadPictureFrames() {
+        this.getPictureFrames()
+            .map(frame => this.normalizeFrameData(frame))
+            .filter(Boolean)
+            .forEach(frame => this.addPictureFrame(frame, { persist: false, animate: false }));
+    }
+
+    static addPictureFrame(fileData, options = {}) {
+        const { persist = true, animate = true } = options;
+        const normalized = this.normalizeFrameData(fileData);
+        const area = document.getElementById('widget-area');
+        if (!area || !normalized) return;
+
+        const id = normalized.id || `frame-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        const frame = document.createElement('div');
+        frame.className = 'widget-card widget-picture-frame';
+        frame.id = `widget-${id}`;
+        frame.draggable = true;
+        frame.dataset.frameId = id;
+        frame.dataset.relPath = normalized.relPath;
+        frame.dataset.name = normalized.name;
+        frame.dataset.fileType = normalized.type;
+        frame.dataset.docType = normalized.docType;
+
+        const previewUrl = this.buildPreviewUrl(normalized.relPath, normalized.docType);
+        const caption = normalized.name || normalized.relPath.split('/').pop() || 'Image';
+
+        frame.innerHTML = `
+            <button type="button" class="frame-close" title="Remove frame" aria-label="Remove frame">&times;</button>
+            <div class="frame-inner">
+                <img loading="lazy">
+                <div class="frame-broken" hidden>
+                    <i class="fa-solid fa-image"></i>
+                    <span>Image unavailable</span>
+                </div>
+            </div>
+            <div class="frame-caption"></div>
+        `;
+
+        const img = frame.querySelector('img');
+        img.src = previewUrl;
+        img.alt = caption;
+        const captionEl = frame.querySelector('.frame-caption');
+        captionEl.textContent = caption;
+        captionEl.title = caption;
+
+        const broken = frame.querySelector('.frame-broken');
+        img.addEventListener('error', () => {
+            img.hidden = true;
+            broken.hidden = false;
+            frame.classList.add('frame-broken');
+        });
+
+        const closeBtn = frame.querySelector('.frame-close');
+        closeBtn.draggable = false;
+        closeBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removePictureFrame(id);
+        });
+
+        area.appendChild(frame);
+        this.bindWidgetDrag(frame);
+
+        if (animate) {
+            frame.classList.add('widget-pop-in');
+        }
+
+        if (persist) {
+            this.savePictureFrames();
+        }
+    }
+
+    static removePictureFrame(id) {
+        document.getElementById(`widget-${id}`)?.remove();
+        this.savePictureFrames();
+    }
+
+    static enableImageDrop() {
+        const targets = [
+            document.getElementById('desktop-container'),
+            document.getElementById('widget-area')
+        ];
+
+        targets.forEach(target => {
+            if (!target || target.dataset.imageDropBound) return;
+            target.dataset.imageDropBound = '1';
+
+            target.addEventListener('dragover', e => {
+                if (!this.isEdocImageDrag(e)) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                target.classList.add('image-drop-target');
+            });
+
+            target.addEventListener('dragleave', e => {
+                if (!e.relatedTarget || !target.contains(e.relatedTarget)) {
+                    target.classList.remove('image-drop-target');
+                }
+            });
+
+            target.addEventListener('drop', e => {
+                if (!this.isEdocImageDrag(e)) return;
+                e.preventDefault();
+                target.classList.remove('image-drop-target');
+                try {
+                    const data = JSON.parse(e.dataTransfer.getData('application/x-edoc-image'));
+                    const normalized = this.normalizeFrameData(data);
+                    if (normalized) {
+                        this.addPictureFrame(normalized);
+                    }
+                } catch (err) {
+                    console.error('Invalid picture frame drop payload', err);
+                }
+            });
         });
     }
 

@@ -1,6 +1,8 @@
 <?php
 session_start();
+require_once __DIR__ . '/api/csrf.php';
 $isLoggedIn = isset($_SESSION['user_id']);
+$csrfToken = $isLoggedIn ? ensureCsrfToken() : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,10 +17,13 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <!-- Styles -->
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="css/desktop.css?v=<?php echo time(); ?>">
     <link rel="stylesheet" href="css/window.css">
 
     <link rel="stylesheet" href="css/fileSystem.css">
+    <link rel="stylesheet" href="css/dashboardWizard.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="css/csvPivot.css?v=<?php echo time(); ?>">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Tabulator CSS -->
@@ -27,11 +32,19 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <!-- Tabulator & PapaParse JS -->
     <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 
 <body>
     <script>
-        window.currentUser = "<?php echo isset($_SESSION['username']) ? $_SESSION['username'] : ''; ?>";
+        window.currentUser = "<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username'], ENT_QUOTES, 'UTF-8') : ''; ?>";
+        window.csrfToken = "<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>";
+        window.escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        window.appendCsrf = (formData) => {
+            if (window.csrfToken) formData.append('csrf_token', window.csrfToken);
+            return formData;
+        };
     </script>
     <!-- Authentication Screen -->
     <div id="auth-container" class="<?php echo $isLoggedIn ? 'hidden' : ''; ?>">
@@ -84,13 +97,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
     </div>
 
     <!-- Scripts -->
-    <script>
-        window.currentUser = '<?php echo isset($_SESSION['username']) ? $_SESSION['username'] : ''; ?>';
-    </script>
+    <script src="assets/vendor/jszip.min.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/vendor/docx-preview.min.js?v=<?php echo time(); ?>"></script>
+    <script src="assets/vendor/pdf.min.js?v=<?php echo time(); ?>"></script>
     <script src="js/auth.js?v=<?php echo time(); ?>"></script>
     <script src="js/windowManager.js?v=<?php echo time(); ?>"></script>
     <script src="js/desktop.js?v=<?php echo time(); ?>"></script>
     <script src="js/fileSystem.js?v=<?php echo time(); ?>"></script>
+    <script src="js/csvPivot.js?v=<?php echo time(); ?>"></script>
     <script src="js/dashboardWizard.js?v=<?php echo time(); ?>"></script>
     <script src="js/widgets.js?v=<?php echo time(); ?>"></script>
 
