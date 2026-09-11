@@ -17,18 +17,22 @@ Web-based virtual desktop for document storage, file preview, CSV pivot tables, 
 - Settings window for avatar and wallpaper upload.
 - Statistics window for profile, private storage, and public storage stats.
 - UI motion system (`css/animations.css`): desktop/taskbar entrance, window open/close, file grid stagger, drag-upload overlays, toast/modal transitions. Respects `prefers-reduced-motion`.
+- Performance-minded UI rendering: file grids render 150 items at a time, previews keep a small in-memory cache, and stale folder loads are ignored when users navigate quickly.
 
 ### File Management
 
 - Private user storage and shared public storage.
 - File grid with double-click open.
 - Multi-select with `Ctrl` / `Cmd`.
+- Large folders initially display 150 items; **Show more** appends the next batch. This is progressive rendering, not a virtual list: the full folder listing is fetched upfront, and displayed items remain in the DOM.
+- Selection is tracked per window independently of rendered icons. Copy, Copy to, Move to, ZIP download, and Delete include all selected items, even those not yet displayed.
+- The file grid shows displayed/total item counts and the selected count. `Ctrl/Cmd`-click toggles an item; a plain click selects only that item. Reloading or navigating resets selection.
 - Right-click context menu for open, rename, copy, paste, copy to, move, delete, and ZIP download.
 - **Keyboard shortcuts** in My Document / Public Document (click the window first):
-  - `Ctrl/Cmd+A` — select all
+  - `Ctrl/Cmd+A` — select every item in the current folder, including items not yet displayed; does not expand subfolders or render additional icons
   - `Ctrl/Cmd+C` — copy selected items to clipboard
   - `Ctrl/Cmd+V` — paste into the current folder (works across private/public)
-  - `F2` — inline rename
+  - `F2` — inline rename (requires exactly one selected item)
   - `Delete` — move to Recycle Bin (My Document only)
   - `Backspace` — go to parent folder
 - **Direct drag-and-drop upload** in My Document and Public Document windows:
@@ -38,6 +42,7 @@ Web-based virtual desktop for document storage, file preview, CSV pivot tables, 
   - Inline progress overlay and automatic file list refresh after upload.
 - Separate **Upload window** (taskbar) with destination selector, file queue, and manual upload button.
 - Upload progress bar for both direct and queued uploads.
+- Upload history stores the latest 30 successful uploads in this browser; open it from the Upload window.
 - Upload limits and basic blocked file type checks.
 - Partial upload reporting when some files are skipped (type, size, or MIME checks).
 - Copy/move collision handling with auto-renamed targets.
@@ -48,7 +53,7 @@ Web-based virtual desktop for document storage, file preview, CSV pivot tables, 
 ### Search And Recent Files
 
 - Search window for private/public files.
-- Search filters by context and sort mode.
+- Search filters by context and sort mode, with matching text highlighted.
 - **Recent Files** (desktop icon and taskbar):
   - Lists the **25 most recently modified** files across private and public storage.
   - Sorted by `modTime` (newest first); excludes trash and `.stats_cache.json`.
@@ -134,7 +139,7 @@ Taskbar/desktop **Dashboard** opens a 3-step wizard for CSV analytics:
 2. **Design chart** — optional **data filters** (AND conditions) before aggregation; dimension, metric, aggregation, chart type, Top N limit, and optional chart title.
 3. **Dashboard** — saved widget grid per CSV file.
 
-Chart rendering uses **Chart.js** (bar, line, doughnut pie, KPI card, table). Widget configs are stored in browser `localStorage` under `edoc.dashboard.{context}.{path}` (not synced server-side). Supports editing and deleting saved widgets.
+Chart rendering uses **Chart.js** (bar, line, doughnut pie, KPI card, table). Widget configs and up to 10 named presets per CSV are stored in browser `localStorage` (not synced server-side). Supports editing and deleting saved widgets.
 
 ### Security
 
@@ -220,6 +225,7 @@ eDoc/
 │   ├── db.php
 │   ├── files.php
 │   ├── logger.php
+│   ├── response.php
 │   ├── settings.php
 │   └── stats.php
 ├── assets/
@@ -244,16 +250,23 @@ eDoc/
 │   └── public/
 ├── js/
 │   ├── app.js
+│   ├── csvViewer.js
 │   ├── csvPivot.js
 │   ├── dashboardWizard.js
+│   ├── documentViewers.js
 │   ├── desktop.js
 │   ├── fileSystem.js
+│   ├── imageViewer.js
 │   ├── logview.js
+│   ├── searchWindow.js
+│   ├── trashWindow.js
+│   ├── uiHelpers.js
 │   ├── widgets.js
 │   └── windowManager.js
 ├── logs/
 ├── index.php
 ├── logview.php
+├── TESTING.md
 └── check_config.php
 ```
 
@@ -277,6 +290,16 @@ eDoc/
 3. Open `check_config.php` to verify permissions and environment.
 4. Open `index.php`.
 5. Register a user and start using the desktop.
+
+## Testing
+
+Run the focused selection regression check from the project root with Node.js:
+
+```sh
+node tests/file-selection.cjs
+```
+
+This simulates 10,000 files with 150 visible items and checks select-all, copy, deselection, single selection, the multi-selection rename guard, and selection isolation between windows. It does not replace browser UI or server file-operation testing. See [TESTING.md](TESTING.md) for manual checks.
 
 ## Notes
 

@@ -2,10 +2,10 @@
 session_start();
 header('Content-Type: application/json');
 require_once 'logger.php';
+require_once 'response.php';
 
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    apiError('Unauthorized', 401);
 }
 
 $username = $_SESSION['username'];
@@ -41,13 +41,6 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     requireCsrfForPost();
-}
-
-function jsonExit($payload, $code = 200)
-{
-    http_response_code($code);
-    echo json_encode($payload);
-    exit;
 }
 
 function ensureDir($dir)

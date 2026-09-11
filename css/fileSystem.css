@@ -5,6 +5,27 @@
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 15px;
     padding: 10px;
+    contain: layout paint;
+}
+
+.file-grid-more {
+    grid-column: 1 / -1;
+    justify-self: center;
+    padding: 8px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    cursor: pointer;
+}
+
+.file-grid-more:hover { background: rgba(255, 255, 255, 0.16); }
+
+.window-list-title mark,
+.window-list-meta mark {
+    padding: 0;
+    color: #fff;
+    background: rgba(241, 196, 15, 0.45);
 }
 
 .file-item {
@@ -20,6 +41,7 @@
 
 .file-item.file-item-enter {
     animation: fadeInUp 0.35s ease-out both;
+    animation-delay: var(--enter-delay, 0ms);
 }
 
 .file-item:hover {

@@ -101,7 +101,13 @@ $csrfToken = $isLoggedIn ? ensureCsrfToken() : '';
     <script src="assets/vendor/docx-preview.min.js?v=<?php echo time(); ?>"></script>
     <script src="assets/vendor/pdf.min.js?v=<?php echo time(); ?>"></script>
     <script src="js/auth.js?v=<?php echo time(); ?>"></script>
+    <script src="js/uiHelpers.js?v=<?php echo time(); ?>"></script>
     <script src="js/windowManager.js?v=<?php echo time(); ?>"></script>
+    <script src="js/imageViewer.js?v=<?php echo time(); ?>"></script>
+    <script src="js/documentViewers.js?v=<?php echo time(); ?>"></script>
+    <script src="js/searchWindow.js?v=<?php echo time(); ?>"></script>
+    <script src="js/trashWindow.js?v=<?php echo time(); ?>"></script>
+    <script src="js/csvViewer.js?v=<?php echo time(); ?>"></script>
     <script src="js/desktop.js?v=<?php echo time(); ?>"></script>
     <script src="js/fileSystem.js?v=<?php echo time(); ?>"></script>
     <script src="js/csvPivot.js?v=<?php echo time(); ?>"></script>

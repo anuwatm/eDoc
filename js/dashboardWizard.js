@@ -286,6 +286,20 @@ class DashboardWizard {
         this.updateHeader();
     }
 
+    static presetKey(file) {
+        return `${this.storageKey(file)}.presets`;
+    }
+
+    static loadPresets() {
+        try { return JSON.parse(localStorage.getItem(this.presetKey(this.state.file))) || []; } catch (_) { return []; }
+    }
+
+    static savePreset(name) {
+        const presets = this.loadPresets().filter(preset => preset.name !== name);
+        presets.unshift({ name, widgets: this.state.widgets });
+        localStorage.setItem(this.presetKey(this.state.file), JSON.stringify(presets.slice(0, 10)));
+    }
+
     static getOperators(column) {
         return this.state.columnMeta[column]?.numeric ? this.NUM_OPS : this.TEXT_OPS;
     }
@@ -827,12 +841,15 @@ class DashboardWizard {
         this.state.editingIndex = null;
         this.updateHeader();
         this.destroyChart('preview');
+        const presets = this.loadPresets();
 
         this.body.innerHTML = `
             <p class="dw-hint">กราฟที่บันทึกไว้ใน browser — คลิก <i class="fa-solid fa-pen"></i> แก้ไข หรือ <i class="fa-solid fa-xmark"></i> ลบ</p>
             <div class="dw-actions">
                 <button class="dw-btn dw-btn-primary dw-back" type="button"><i class="fa-solid fa-plus"></i> เพิ่มกราฟใหม่</button>
                 <button class="dw-btn dw-btn-ghost dw-change-csv" type="button">เปลี่ยนไฟล์ CSV</button>
+                <button class="dw-btn dw-btn-ghost dw-save-preset" type="button">บันทึก preset</button>
+                <select class="dw-select dw-preset-select"><option value="">โหลด preset...</option>${presets.map((preset, idx) => `<option value="${idx}">${this.escape(preset.name)}</option>`).join('')}</select>
             </div>
             <div class="dw-dashboard-grid"></div>
         `;
@@ -841,6 +858,20 @@ class DashboardWizard {
             this.renderDesignStep();
         };
         this.body.querySelector('.dw-change-csv').onclick = () => this.goToStep(1);
+        this.body.querySelector('.dw-save-preset').onclick = () => {
+            const name = window.prompt('ชื่อ preset');
+            if (!name?.trim()) return;
+            this.savePreset(name.trim());
+            Notify.show('บันทึก preset แล้ว', 'success');
+            this.renderDashboard();
+        };
+        this.body.querySelector('.dw-preset-select').onchange = (event) => {
+            const preset = presets[Number(event.target.value)];
+            if (!preset) return;
+            this.state.widgets = preset.widgets || [];
+            this.saveWidgets();
+            this.renderDashboard();
+        };
 
         const grid = this.body.querySelector('.dw-dashboard-grid');
         if (!this.state.widgets.length) {

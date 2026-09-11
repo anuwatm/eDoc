@@ -41,7 +41,7 @@
 
 .desktop-icon:hover {
     background: rgba(255, 255, 255, 0.1);
-    animation: iconBob 0.55s ease-in-out infinite;
+    transform: translateY(-3px) scale(1.04);
 }
 
 .desktop-icon:active {

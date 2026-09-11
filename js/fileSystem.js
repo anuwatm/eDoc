@@ -3,6 +3,23 @@
 class FileSystem {
     static clipboard = null; // { action: 'copy', sourceType, items: [{ relPath, name }] }
     static activeContainer = null;
+    static loadTokens = new WeakMap();
+    static folderStates = new WeakMap();
+    static previewCache = new Map();
+    static PREVIEW_CACHE_LIMIT = 6;
+    static FILE_BATCH_SIZE = 150;
+    static UPLOAD_HISTORY_KEY = 'edoc.upload-history';
+    static imageTypes = new Set(['jpg', 'png', 'jpeg', 'gif', 'webp']);
+    static iconMeta = {
+        folder: ['fa-folder', '#FFD700'],
+        image: ['fa-image', '#00BFFF'],
+        mp4: ['fa-film', '#FF4500'],
+        csv: ['fa-file-csv', '#32CD32'],
+        pdf: ['fa-file-pdf', '#FF0000'],
+        doc: ['fa-file-word', '#2B579A'],
+        docx: ['fa-file-word', '#2B579A'],
+        default: ['fa-file', '#ccc']
+    };
 
     static escapeHtml(value) {
         return typeof window.escapeHtml === 'function' ? window.escapeHtml(value) : String(value ?? '');
@@ -14,6 +31,9 @@ class FileSystem {
     }
 
     static async load(container, type, path = '') {
+        const token = Symbol('load');
+        this.loadTokens.set(container, token);
+        this.folderStates.delete(container);
         container.innerHTML = '<div class="loading-spinner">Loading files...</div>';
         container.setAttribute('data-path', path);
         container.setAttribute('data-type', type);
@@ -22,8 +42,9 @@ class FileSystem {
         this.enableKeyboard(container);
 
         try {
-            const response = await fetch(`api/files.php?action=list&type=${type === 'my-doc' ? 'private' : 'public'}&path=${path}`);
+            const response = await fetch(`api/files.php?action=list&type=${type === 'my-doc' ? 'private' : 'public'}&path=${encodeURIComponent(path)}`);
             const result = await response.json();
+            if (this.loadTokens.get(container) !== token) return;
 
             if (result.success) {
                 this.render(container, result.files, type, path);
@@ -37,6 +58,14 @@ class FileSystem {
 
     static render(container, files, type, currentPath) {
         container.innerHTML = '';
+        const state = { files, selected: new Set() };
+        this.folderStates.set(container, state);
+        const fragment = document.createDocumentFragment();
+        const status = document.createElement('div');
+        status.className = 'window-list-summary';
+        status.setAttribute('role', 'status');
+        state.status = status;
+        fragment.appendChild(status);
 
         // Add "Up" folder if we are deep
         if (currentPath) {
@@ -49,7 +78,7 @@ class FileSystem {
                 const newPath = currentPath.split('/').slice(0, -1).join('/');
                 this.load(container, type, newPath);
             };
-            container.appendChild(upDiv);
+            fragment.appendChild(upDiv);
         }
 
         const grid = document.createElement('div');
@@ -60,10 +89,15 @@ class FileSystem {
             return;
         }
 
-        files.forEach((file, index) => {
+        let rendered = 0;
+        const renderNextBatch = () => {
+            const batchFragment = document.createDocumentFragment();
+            const batch = files.slice(rendered, rendered + this.FILE_BATCH_SIZE);
+            batch.forEach((file, offset) => {
+            const index = rendered + offset;
             const item = document.createElement('div');
             item.className = 'file-item file-item-enter';
-            item.style.animationDelay = `${Math.min(index, 14) * 35}ms`;
+            item.style.setProperty('--enter-delay', `${Math.min(index, 12) * 24}ms`);
             item.setAttribute('data-name', file.name);
             item.setAttribute('data-type', file.type);
             item.setAttribute('data-relpath', file.relPath);
@@ -71,7 +105,7 @@ class FileSystem {
             item.ondblclick = () => this.openFile(file, type);
             item.oncontextmenu = (e) => this.showContextMenu(e, file, type, container);
 
-            if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) {
+            if (this.imageTypes.has(file.type)) {
                 item.draggable = true;
                 item.addEventListener('dragstart', (e) => {
                     e.stopPropagation();
@@ -84,15 +118,7 @@ class FileSystem {
                 item.addEventListener('dragend', () => item.classList.remove('dragging-file'));
             }
 
-            let iconClass = 'fa-file';
-            let iconColor = '#ccc';
-
-            if (file.isDir) { iconClass = 'fa-folder'; iconColor = '#FFD700'; }
-            else if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) { iconClass = 'fa-image'; iconColor = '#00BFFF'; }
-            else if (file.type === 'mp4') { iconClass = 'fa-film'; iconColor = '#FF4500'; }
-            else if (file.type === 'csv') { iconClass = 'fa-file-csv'; iconColor = '#32CD32'; }
-            else if (file.type === 'pdf') { iconClass = 'fa-file-pdf'; iconColor = '#FF0000'; }
-            else if (['doc', 'docx'].includes(file.type)) { iconClass = 'fa-file-word'; iconColor = '#2B579A'; }
+            const [iconClass, iconColor] = this.getIconMeta(file);
 
             const icon = document.createElement('i');
             icon.className = `fa-solid ${iconClass}`;
@@ -103,13 +129,55 @@ class FileSystem {
             item.appendChild(icon);
             item.appendChild(nameSpan);
 
-            grid.appendChild(item);
-        });
+            batchFragment.appendChild(item);
+            });
+            grid.insertBefore(batchFragment, moreBtn);
+            rendered += batch.length;
+            if (rendered < files.length) {
+                moreBtn.hidden = false;
+                moreBtn.textContent = `Show more (${files.length - rendered} remaining)`;
+            } else {
+                moreBtn.remove();
+            }
+            this.syncSelection(container);
+        };
 
-        container.appendChild(grid);
+        // ponytail: progressive batches keep huge folders responsive without a virtual-grid library.
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'file-grid-more';
+        moreBtn.hidden = true;
+        moreBtn.onclick = renderNextBatch;
+        grid.appendChild(moreBtn);
+        renderNextBatch();
+
+        fragment.appendChild(grid);
+        container.appendChild(fragment);
+        this.syncSelection(container);
+    }
+
+    static getIconMeta(file) {
+        if (file.isDir) return this.iconMeta.folder;
+        if (this.imageTypes.has(file.type)) return this.iconMeta.image;
+        return this.iconMeta[file.type] || this.iconMeta.default;
     }
 
     static selectFile(e, element, file, type, container) {
+        const state = this.folderStates.get(container);
+        if (state) {
+            if (e.ctrlKey || e.metaKey) {
+                if (state.selected.has(file.relPath)) state.selected.delete(file.relPath);
+                else state.selected.add(file.relPath);
+            } else {
+                state.selected.clear();
+                state.selected.add(file.relPath);
+            }
+            this.syncSelection(container);
+            if (typeof Widgets !== 'undefined') {
+                Widgets.updateDetailWidget(state.selected.size === 1 ? state.files.find(f => state.selected.has(f.relPath)) : null, type);
+            }
+            return;
+        }
         if (e.ctrlKey || e.metaKey) {
             element.classList.toggle('selected');
         } else {
@@ -141,29 +209,61 @@ class FileSystem {
         }
     }
 
-    static preview(file, contextType) {
+    static async preview(file, contextType) {
         const apiUrl = `api/files.php?action=read_content&type=${contextType === 'my-doc' ? 'private' : 'public'}&path=${encodeURIComponent(file.relPath)}`;
+        const src = ['jpg', 'png', 'jpeg', 'gif', 'webp', 'csv', 'docx', 'pdf'].includes(file.type)
+            ? await this.getPreviewSource(apiUrl, file.type)
+            : apiUrl;
 
-        if (['jpg', 'png', 'jpeg', 'gif', 'webp'].includes(file.type)) {
-            WindowManager.open(`Preview: ${file.name}`, 'preview-img', { src: apiUrl, name: file.name });
+        if (this.imageTypes.has(file.type)) {
+            WindowManager.open(`Preview: ${file.name}`, 'preview-img', { src, name: file.name });
         } else if (file.type === 'mp4') {
             WindowManager.open(`Preview: ${file.name}`, 'preview-video', { src: apiUrl });
         } else if (file.type === 'csv') {
             WindowManager.open(`CSV: ${file.name}`, 'csv-viewer', {
-                src: apiUrl,
+                src,
                 name: file.name,
                 relPath: file.relPath,
                 context: contextType === 'my-doc' ? 'Private' : 'Public',
             });
         } else if (file.type === 'docx') {
-            WindowManager.open(`Preview: ${file.name}`, 'preview-docx', { src: apiUrl, name: file.name });
+            WindowManager.open(`Preview: ${file.name}`, 'preview-docx', { src, name: file.name });
         } else if (file.type === 'pdf') {
-            WindowManager.open(`Preview: ${file.name}`, 'preview-pdf', { src: apiUrl, name: file.name });
+            WindowManager.open(`Preview: ${file.name}`, 'preview-pdf', { src, name: file.name });
         } else if (file.type === 'doc') {
             Notify.show('Legacy .doc is not supported. Save as .docx to preview.', 'info');
         } else {
             Notify.show('No preview available for this file type.', 'info');
         }
+    }
+
+    static async getPreviewSource(url, type) {
+        if (type === 'mp4') return url;
+        const cached = this.previewCache.get(url);
+        if (cached) {
+            this.previewCache.delete(url);
+            this.previewCache.set(url, cached);
+            return cached;
+        }
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const objectUrl = URL.createObjectURL(await response.blob());
+            this.previewCache.set(url, objectUrl);
+            if (this.previewCache.size > this.PREVIEW_CACHE_LIMIT) {
+                const [oldUrl, oldObjectUrl] = this.previewCache.entries().next().value;
+                this.previewCache.delete(oldUrl);
+                URL.revokeObjectURL(oldObjectUrl);
+            }
+            return objectUrl;
+        } catch (_) {
+            return url;
+        }
+    }
+
+    static clearPreviewCache() {
+        this.previewCache.forEach(objectUrl => URL.revokeObjectURL(objectUrl));
+        this.previewCache.clear();
     }
 
     static showContextMenu(e, file, type, container) {
@@ -173,12 +273,11 @@ class FileSystem {
         // If clicking on an unselected item, select only it
         const clickedItem = e.currentTarget;
         if (!clickedItem.classList.contains('selected')) {
-            container.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
-            clickedItem.classList.add('selected');
+            this.selectFile({}, clickedItem, file, type, container);
         }
 
-        const selectedItems = Array.from(container.querySelectorAll('.file-item.selected'));
-        const selectedPaths = selectedItems.map(item => item.getAttribute('data-relpath')).filter(Boolean);
+        const selectedItems = this.getSelectedItems(container);
+        const selectedPaths = selectedItems.map(item => item.relPath);
 
         const menu = document.createElement('div');
         menu.className = 'context-menu';
@@ -282,6 +381,7 @@ class FileSystem {
     }
 
     static refreshViews(type = null) {
+        this.clearPreviewCache();
         const targetType = type ? this.normalizeDocType(type) : null;
         document.querySelectorAll('.window-content[data-type]').forEach(container => {
             const currentType = container.getAttribute('data-type');
@@ -289,8 +389,8 @@ class FileSystem {
                 this.load(container, currentType, container.getAttribute('data-path') || '');
             }
         });
-        document.querySelectorAll('.window-content[data-view="trash-window"]').forEach(container => WindowManager.renderTrash(container));
-        document.querySelectorAll('.window-content[data-view="recent-files"]').forEach(container => WindowManager.renderRecentFiles(container));
+        document.querySelectorAll('.window-content[data-view="trash-window"]').forEach(container => TrashWindow.render(container));
+        document.querySelectorAll('.window-content[data-view="recent-files"]').forEach(container => RecentWindow.render(container));
     }
 
     static async restoreTrashItem(id, context) {
@@ -464,7 +564,17 @@ class FileSystem {
         return document.querySelector('.window-content.file-manager-focusable[data-type]');
     }
 
+    static syncSelection(container) {
+        const state = this.folderStates.get(container);
+        if (!state) return;
+        const visible = container.querySelectorAll('.file-item');
+        visible.forEach(item => item.classList.toggle('selected', state.selected.has(item.getAttribute('data-relpath'))));
+        state.status.textContent = `${visible.length} / ${state.files.length} items | ${state.selected.size} selected`;
+    }
+
     static getSelectedItems(container) {
+        const state = this.folderStates.get(container);
+        if (state) return state.files.filter(file => state.selected.has(file.relPath));
         return Array.from(container.querySelectorAll('.file-item.selected')).map(item => ({
             relPath: item.getAttribute('data-relpath'),
             name: item.getAttribute('data-name')
@@ -472,6 +582,11 @@ class FileSystem {
     }
 
     static selectAll(container) {
+        const state = this.folderStates.get(container);
+        if (state) {
+            state.selected = new Set(state.files.map(file => file.relPath));
+            this.syncSelection(container);
+        }
         container.querySelectorAll('.file-item').forEach(el => el.classList.add('selected'));
         if (typeof Widgets !== 'undefined') Widgets.updateDetailWidget(null);
     }
@@ -521,6 +636,10 @@ class FileSystem {
     }
 
     static startInlineRename(container, type) {
+        if (this.getSelectedItems(container).length !== 1) {
+            Notify.show('Select one file to rename', 'info');
+            return;
+        }
         const selected = container.querySelector('.file-item.selected');
         if (!selected) {
             Notify.show('Select one file to rename', 'info');
@@ -1077,6 +1196,7 @@ class FileSystem {
                 }
 
                 if (xhr.status >= 200 && xhr.status < 300 && data.success) {
+                    this.recordUpload(data.uploaded || [], uploadType, path);
                     if (data.partial) {
                         Notify.show(data.message || 'Some files were skipped', 'info');
                     } else {
@@ -1110,6 +1230,32 @@ class FileSystem {
 
             xhr.send(formData);
         });
+    }
+
+    static recordUpload(names, type, path) {
+        if (!names.length) return;
+        try {
+            const history = JSON.parse(localStorage.getItem(this.UPLOAD_HISTORY_KEY)) || [];
+            const entries = names.map(name => ({ name, type, path: path || '/', at: Date.now() }));
+            localStorage.setItem(this.UPLOAD_HISTORY_KEY, JSON.stringify([...entries, ...history].slice(0, 30)));
+        } catch (_) {}
+    }
+
+    static renderUploadHistory(container) {
+        let history = [];
+        try { history = JSON.parse(localStorage.getItem(this.UPLOAD_HISTORY_KEY)) || []; } catch (_) {}
+        container.innerHTML = history.length ? '' : '<div class="empty-state">No upload history</div>';
+        const list = document.createDocumentFragment();
+        history.forEach(entry => {
+            const row = document.createElement('div');
+            row.className = 'window-list-row';
+            const date = new Date(entry.at).toLocaleString();
+            row.innerHTML = `<i class="fa-solid fa-cloud-arrow-up window-list-icon"></i><div class="window-list-text"><div class="window-list-title"></div><div class="window-list-meta"></div></div>`;
+            row.querySelector('.window-list-title').textContent = entry.name;
+            row.querySelector('.window-list-meta').textContent = `${entry.type === 'private' ? 'My Document' : 'Public'} / ${entry.path} · ${date}`;
+            list.appendChild(row);
+        });
+        container.appendChild(list);
     }
 
     static formatBytes(bytes, decimals = 2) {

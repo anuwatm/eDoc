@@ -303,3 +303,125 @@
     align-items: center;
     justify-content: center;
 }
+
+.window-pane {
+    display: flex;
+    flex-direction: column;
+}
+
+.window-toolbar {
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    animation: fadeInDown 0.28s ease-out both;
+}
+
+.window-toolbar-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.window-input,
+.window-select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    outline: none;
+}
+
+.window-input {
+    flex: 1;
+    min-width: 160px;
+}
+
+.window-select {
+    background: #111;
+}
+
+.window-action-btn {
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.window-action-btn.compact {
+    padding: 6px 10px;
+}
+
+.window-action-btn.danger {
+    background: #c0392b;
+}
+
+.window-list-scroll {
+    flex: 1;
+    overflow: auto;
+    padding: 10px;
+    contain: layout paint;
+}
+
+.window-list-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: auto;
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    text-align: left;
+    cursor: pointer;
+    animation: fadeInUp 0.28s ease-out both;
+    animation-delay: var(--enter-delay, 0ms);
+}
+
+.window-list-row:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.window-list-icon {
+    font-size: 1.4rem;
+    color: #ccc;
+}
+
+.window-list-icon.folder {
+    color: #ffd700;
+}
+
+.window-list-text {
+    min-width: 0;
+    flex: 1;
+}
+
+.window-list-title,
+.window-list-meta {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.window-list-title {
+    color: #fff;
+    font-weight: 600;
+}
+
+.window-list-meta,
+.window-list-summary {
+    color: #aaa;
+    font-size: 0.85rem;
+}
+
+.window-list-summary {
+    margin-bottom: 10px;
+}
+
+.trash-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}

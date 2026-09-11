@@ -122,12 +122,6 @@
     }
 }
 
-/* Subtle living background */
-body {
-    background-size: 200% 200%;
-    animation: meshDrift 18s ease infinite;
-}
-
 /* Loading spinner */
 .loading-spinner {
     display: flex;
